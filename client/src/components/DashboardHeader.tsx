@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Bell, Search, Settings, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"

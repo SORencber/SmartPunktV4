@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { getInventory, updateProductStock, updatePart } from '@/api/inventory'
 import { getDeviceTypes, type DeviceType } from '@/api/deviceTypes'
 import { getBrands, type Brand } from '@/api/brands'
-import { getModels, type Model } from '@/api/models'
+import { getModels, type Model as ApiModel } from '@/api/models'
 import { getBranches, type Branch } from '@/api/branches'
 import { Search, Package, AlertTriangle, Plus, Minus, Building, Loader2, Filter, X, Pencil, Eye, Wrench, ShoppingCart } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
@@ -61,11 +61,11 @@ interface BranchPart {
       tr: string;
       de: string;
       en: string;
-    };
+    } | string;
   };
   deviceTypeId: {
     _id: string;
-    name: string;
+    name: string | { tr?: string; en?: string; de?: string };
   };
   branch_stock: number;
   branch_minStockLevel: number;
@@ -81,18 +81,6 @@ interface BranchPart {
     amount: number;
     currency: 'EUR';
   };
-}
-
-interface Model {
-  _id: string;
-  name: {
-    tr?: string;
-    en?: string;
-    de?: string;
-  } | string;
-  brandId?: string;
-  deviceTypeId?: string;
-  isActive: boolean;
 }
 
 interface PartUpdateData {
@@ -117,7 +105,7 @@ export function Inventory() {
   // States for filter data
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
-  const [models, setModels] = useState<Model[]>([])
+  const [models, setModels] = useState<ApiModel[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
   const [loadingFilters, setLoadingFilters] = useState(true)
 
@@ -252,10 +240,10 @@ export function Inventory() {
           setBrands(brandsRes.data)
         }
         if (modelsRes.success) {
-          setModels(modelsRes.data.filter((model: Model) => model.isActive))
+          setModels(modelsRes.data.filter((model: ApiModel) => model.isActive))
         }
         if (branchesRes.success) {
-          setBranches(branchesRes.data)
+          setBranches((branchesRes.data || []) as Branch[])
           // Admin değilse kendi şubesini seç
           if (!isAdminUser && branch) {
             setSelectedBranch(branch._id)
@@ -280,16 +268,7 @@ export function Inventory() {
     }
     return models
       .filter(model => model && model.brandId === selectedBrand)
-      .sort((a, b) => {
-        // Handle both string and object name types
-        const nameA = typeof a.name === 'string' ? a.name : 
-          (a.name && typeof a.name === 'object' ? 
-            (a.name.tr || a.name.en || a.name.de || '') : '')
-        const nameB = typeof b.name === 'string' ? b.name : 
-          (b.name && typeof b.name === 'object' ? 
-            (b.name.tr || b.name.en || b.name.de || '') : '')
-        return nameA.localeCompare(nameB)
-      })
+      .sort((a, b) => getDisplayName(a.name as any).localeCompare(getDisplayName(b.name as any)))
   }, [models, selectedBrand])
 
   // Reset model selection when brand changes
@@ -596,7 +575,7 @@ export function Inventory() {
                   </SelectItem>
                   {deviceTypes
                     .filter(dt => dt && dt.isActive)
-                    .sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
+                    .sort((a, b) => getDisplayName(a?.name as any).localeCompare(getDisplayName(b?.name as any)))
                     .map((dt) => (
                       <SelectItem key={dt._id} value={dt._id} className="custom-select-item">
                         {dt?.name || 'İsimsiz Cihaz Tipi'}
@@ -631,7 +610,7 @@ export function Inventory() {
                   </SelectItem>
                   {filteredBrands
                     .filter(brand => brand)
-                    .sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
+                    .sort((a, b) => getDisplayName(a?.name as any).localeCompare(getDisplayName(b?.name as any)))
                     .map((brand) => (
                       <SelectItem key={brand._id} value={brand._id} className="custom-select-item">
                         {brand?.name || 'İsimsiz Marka'}
@@ -666,7 +645,7 @@ export function Inventory() {
                   </SelectItem>
                   {filteredModels
                     .filter(model => model)
-                    .sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
+                    .sort((a, b) => getDisplayName(a?.name as any).localeCompare(getDisplayName(b?.name as any)))
                     .map((model) => (
                       <SelectItem key={model._id} value={model._id} className="custom-select-item">
                         {model?.name || 'İsimsiz Model'}

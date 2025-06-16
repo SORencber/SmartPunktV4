@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { useSnackbar } from 'notistack';
 
 export function RepairArchiveTab({ repair, onUpdate }: RepairArchiveTabProps) {

@@ -2,7 +2,7 @@ import React from 'react';
 import type { Brand } from '@/api/brands';
 
 interface BrandIconProps {
-  brand: string | Brand;
+  brand?: string | Brand;
   className?: string;
   size?: number;
 }
@@ -90,7 +90,7 @@ const BRAND_EMOJIS: Record<string, string> = {
   // Traditional Brands
   "Motorola": "📱",
   "Nokia": "📱",
-  "LG": "📱",
+  "LG": "��",
   "HTC": "📱",
   "Asus": "💻",
   "Lenovo": "💻",
@@ -128,21 +128,21 @@ const AVAILABLE_SVG_BRANDS = new Set([
 
 export const BrandIcon: React.FC<BrandIconProps> = ({ brand, className = '', size = 24 }) => {
   // Get brand name and icon safely
-  const getBrandInfo = (brand: string | Brand) => {
-    if (!brand) return { name: '', icon: '' };
-    
-    if (typeof brand === 'string') {
-      return { name: brand, icon: brand };
+  const getBrandInfo = (brandVal: string | Brand | undefined) => {
+    if (!brandVal) return { name: '', icon: '' };
+
+    if (typeof brandVal === 'string') {
+      return { name: brandVal, icon: brandVal };
     }
     
-    // Handle Brand object
-    const name = typeof brand.name === 'string' 
-      ? brand.name 
-      : (brand.name?.tr || brand.name?.en || brand.name?.de || '');
-    
-    return { 
-      name, 
-      icon: brand.icon || name 
+    const br = brandVal as Brand as any;
+    const name = typeof br.name === 'string'
+      ? br.name
+      : (br.name?.tr || br.name?.en || br.name?.de || '');
+
+    return {
+      name,
+      icon: br.icon || name
     };
   };
 

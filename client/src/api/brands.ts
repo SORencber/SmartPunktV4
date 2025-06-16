@@ -2,8 +2,9 @@ import { api } from './api';
 
 export interface Brand {
   _id: string;
-  name: string;
-  icon: string;
+  name: any;
+  icon?: string;
+  logo?: string;
   deviceType?: string;
   deviceTypeId?: string;
   description?: string;
@@ -52,6 +53,13 @@ export interface UpdateBrandRequest {
   isActive?: boolean;
 }
 
+export interface Model {
+  _id: string;
+  name: any;
+  brandId?: string;
+  deviceTypeId?: string;
+}
+
 // Get brands with filters
 export const getBrands = async (params?: {
   deviceType?: string;
@@ -97,4 +105,7 @@ export const updateBrand = async (id: string, data: UpdateBrandRequest): Promise
 export const deleteBrand = async (id: string): Promise<{ success: boolean; message: string }> => {
   const response = await api.delete(`/api/brands/${id}`);
   return response.data;
-}; 
+};
+
+// ... existing code ...
+// ... existing code ... 

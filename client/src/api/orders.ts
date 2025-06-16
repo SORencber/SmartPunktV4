@@ -112,3 +112,15 @@ export const sendCustomerUpdate = async (id: string, data: { message: string, no
     throw new Error(error?.response?.data?.message || error.message);
   }
 }
+
+// Description: Delete an order
+// Endpoint: DELETE /api/orders/:id
+// Response: { message: string }
+export const deleteOrder = async (id: string) => {
+  try {
+    const response = await api.delete(`/api/orders/${id}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
+}

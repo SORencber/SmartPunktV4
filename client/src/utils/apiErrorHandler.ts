@@ -7,44 +7,24 @@ export class ApiError extends Error {
   }
 }
 
-export function useApiErrorHandler() {
-  const { enqueueSnackbar } = useSnackbar()
-
-  const handleApiError = (error: unknown, fallbackMessage = 'An error occurred') => {
-    console.error('API Error:', error)
-    
-    if (error instanceof ApiError) {
-      enqueueSnackbar(error.message, { 
-        variant: 'error',
-        anchorOrigin: { vertical: 'top', horizontal: 'right' }
-      })
-      return error.message
-    }
-    
-    if (error instanceof Error) {
-      if (error.message.includes('Failed to fetch') || error.message.includes('Network Error')) {
-        enqueueSnackbar('Unable to connect to server. Using demo data.', { 
-          variant: 'error',
-          anchorOrigin: { vertical: 'top', horizontal: 'right' }
-        })
-        return 'Connection failed - using demo data'
-      }
-      
-      enqueueSnackbar(error.message, { 
-        variant: 'error',
-        anchorOrigin: { vertical: 'top', horizontal: 'right' }
-      })
-      return error.message
-    }
-    
-    enqueueSnackbar(fallbackMessage, { 
-      variant: 'error',
-      anchorOrigin: { vertical: 'top', horizontal: 'right' }
-    })
-    return fallbackMessage
+export function handleApiError(error: unknown, fallbackMessage = 'An error occurred'): string {
+  console.error('API Error:', error);
+  if (error instanceof Error) {
+    return error.message;
   }
+  return typeof fallbackMessage === 'string' ? fallbackMessage : 'Error';
+}
 
-  return { handleApiError }
+export function useApiErrorHandler() {
+  const { enqueueSnackbar } = useSnackbar();
+
+  const notifyError = (error: unknown, fallbackMessage = 'An error occurred') => {
+    const msg = handleApiError(error, fallbackMessage);
+    enqueueSnackbar(msg, { variant: 'error', anchorOrigin: { vertical: 'top', horizontal: 'right' } });
+    return msg;
+  };
+
+  return { handleApiError: notifyError };
 }
 
 export function createApiWrapper<T>(

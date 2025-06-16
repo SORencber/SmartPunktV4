@@ -1,12 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { getCustomer, updateCustomer, deleteCustomer, Customer as CustomerType } from '@/api/customers'
 import { useSnackbar } from 'notistack'
-import { ArrowLeft, Phone, Mail, Globe, ShoppingCart, DollarSign, Calendar, Save, Trash2 } from 'lucide-react'
-import { formatCurrency, formatDate } from '@/lib/formatters'
+import { ArrowLeft, Save, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import {
   AlertDialog,
@@ -22,29 +19,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-
-interface Customer {
-  _id: string
-  name: string
-  phone: string
-  email: string
-  preferredLanguage: string
-  recentOrders: Array<{
-    _id: string
-    orderNumber: string
-    device: {
-      brand: string
-      model: string
-    }
-    status: string
-    payment: {
-      amount: number
-    }
-    createdAt: string
-  }>
-  totalSpent: number
-  totalOrders: number
-}
 
 interface CustomerFormData {
   name: string
@@ -68,13 +42,13 @@ export default function CustomerDetails() {
 
       try {
         const response = await getCustomer(id)
-        if (response.data?.success && response.data.data) {
-          setCustomer(response.data.data)
+        if (response.success && response.data) {
+          setCustomer(response.data)
           reset({
-            name: response.data.data.name,
-            phone: response.data.data.phone,
-            email: response.data.data.email,
-            address: response.data.data.address
+            name: response.data.name,
+            phone: response.data.phone,
+            email: response.data.email,
+            address: response.data.address
           })
         }
       } catch (error) {
@@ -91,7 +65,7 @@ export default function CustomerDetails() {
     try {
       if (!id) return
       const response = await updateCustomer(id, formData)
-      if (response.data?.success) {
+      if (response.success) {
         enqueueSnackbar("Müşteri bilgileri güncellendi", { variant: "success" })
         setCustomer(prev => prev ? { ...prev, ...formData } : null)
       }
@@ -104,33 +78,12 @@ export default function CustomerDetails() {
     try {
       if (!id) return
       const response = await deleteCustomer(id)
-      if (response.data?.success) {
+      if (response.success) {
         enqueueSnackbar("Müşteri silindi", { variant: "success" })
         navigate('/customers')
       }
     } catch (error) {
       enqueueSnackbar("Müşteri silinemedi", { variant: "error" })
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-      case 'in progress':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
-    }
-  }
-
-  const getLanguageFlag = (lang: string) => {
-    switch (lang) {
-      case 'TR': return '🇹🇷'
-      case 'DE': return '🇩🇪'
-      default: return '🇺🇸'
     }
   }
 

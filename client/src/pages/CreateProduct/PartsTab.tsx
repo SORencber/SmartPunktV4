@@ -23,7 +23,6 @@ import {
   MenuItem,
   InputAdornment,
   FormHelperText,
-  Grid,
   FormControlLabel,
   Switch,
   SelectChangeEvent,
@@ -31,6 +30,7 @@ import {
   Tooltip,
   Chip
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, Save as SaveIcon, Cancel as CancelIcon, Add as AddIcon, Close, Clear as ClearIcon } from '@mui/icons-material';
 import { BrandIcon } from '@/components/BrandIcon';
 import { DeviceTypeIcon } from '@/components/DeviceTypeIcon';
@@ -43,11 +43,6 @@ import { api } from '../../api/api';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import { useTranslation } from 'react-i18next';
 import { useBranch } from '../../contexts/BranchContext';
-import { FormData as ApiFormData } from '../../types/part';
-import { Brand as LocalBrand } from '../../types/brand';
-import { Model as LocalModel } from '../../types/model';
-import { DeviceType as LocalDeviceType } from '../../types/deviceType';
-import { log } from '../../utils/logger';
 import { cn } from '../../lib/utils';
 import {
   Select as UISelect,
@@ -57,10 +52,6 @@ import {
   SelectItem,
 } from '../../components/ui/select';
 import { Label } from '../../components/ui/label';
-import { ApiPart } from '../../api/parts';
-import { ApiBrand } from '../../api/brands';
-import { ApiModel } from '../../api/models';
-import { ApiDeviceType } from '../../api/deviceTypes';
 import { useSnackbar, VariantType } from 'notistack';
 
 interface Branch {
@@ -99,20 +90,20 @@ interface FormData {
     de: string;
   };
   description: {
-    tr: string;
-    en: string;
-    de: string;
+    tr?: string;
+    en?: string;
+    de?: string;
   };
   category: string;
   barcode: string;
   qrCode: string;
   cost: {
     amount: number;
-    currency: string;
+    currency: 'EUR';
   };
   price: {
     amount: number;
-    currency: string;
+    currency: 'EUR';
   };
   margin: number;
   stock: number;
@@ -122,7 +113,7 @@ interface FormData {
   branchId: string;
   serviceFee: {
     amount: number;
-    currency: string;
+    currency: 'EUR';
   };
   code?: string;
 }
@@ -137,22 +128,16 @@ interface FormErrors {
   qrCode?: string;
 }
 
-// Use type aliases for API types
-type ApiPart = Part;
-type ApiBrand = Brand;
-type ApiDeviceType = DeviceType;
-type ApiModel = Model;
-
 export function PartsTab({ branchId, userId }: PartsTabProps) {
   const navigate = useNavigate();
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-  const [parts, setParts] = useState<ApiPart[]>([]);
-  const [deviceTypes, setDeviceTypes] = useState<ApiDeviceType[]>([]);
-  const [brands, setBrands] = useState<ApiBrand[]>([]);
-  const [models, setModels] = useState<ApiModel[]>([]);
+  const [parts, setParts] = useState<any[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingPart, setEditingPart] = useState<ApiPart | null>(null);
+  const [editingPart, setEditingPart] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState<FormData>({
     deviceTypeId: '',
@@ -163,25 +148,25 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
     category: '',
     barcode: '',
     qrCode: '',
-    cost: { amount: 0, currency: 'EUR' },
-    price: { amount: 0, currency: 'EUR' },
+    cost: { amount: 0, currency: 'EUR' as const },
+    price: { amount: 0, currency: 'EUR' as const },
     margin: 0,
     stock: 0,
     minStockLevel: 0,
     shelfNumber: '',
     isActive: true,
     branchId: branchId,
-    serviceFee: { amount: 0, currency: 'EUR' },
+    serviceFee: { amount: 0, currency: 'EUR' as const },
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [filteredParts, setFilteredParts] = useState<ApiPart[]>([]);
+  const [filteredParts, setFilteredParts] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedDeviceType, setSelectedDeviceType] = useState<string>('');
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [filteredModels, setFilteredModels] = useState<Model[]>([]);
+  const [filteredModels, setFilteredModels] = useState<any[]>([]);
 
   // Bildirim gösterme yardımcı fonksiyonu
   const showNotification = useCallback((message: string, variant: VariantType = 'success') => {
@@ -193,7 +178,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           horizontal: 'right',
         },
         autoHideDuration: variant === 'error' ? 5000 : 3000,
-        onClick: () => closeSnackbar(key),
         style: {
           backgroundColor: 
             variant === 'success' ? '#4caf50' :
@@ -207,10 +191,10 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
         }
       });
-    } catch (error) {
-      console.error('Bildirim gösterilirken hata:', error);
+    } catch (err: any) {
+      console.error('Bildirim gösterilirken hata:', err);
     }
-  }, [enqueueSnackbar, closeSnackbar]);
+  }, [enqueueSnackbar]);
 
   // Test bildirimi
   useEffect(() => {
@@ -229,8 +213,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           loadBrands(),
           loadModels()
         ]);
-      } catch (error) {
-        console.error('Error loading data:', error);
+      } catch (err: any) {
+        console.error('Error loading data:', err);
         showNotification("Veriler yüklenirken bir hata oluştu", 'error');
       } finally {
         setLoading(false);
@@ -253,21 +237,12 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
 
       console.log('Parts loaded successfully:', response.data.length);
       setParts(response.data);
-    } catch (error: any) {
-      console.error('Error loading parts:', error);
+    } catch (err: any) {
+      console.error('Error loading parts:', err);
       
-      // If error is 401, try to refresh token
-      if (error?.response?.status === 401) {
-        console.log('Received 401 while loading parts, attempting to refresh token');
-        try {
-          await refreshUserData();
-          // Retry loading parts after token refresh
-          await loadParts();
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          // If token refresh fails, redirect to login
-          navigate('/login');
-        }
+      if (err?.response?.status === 401) {
+        console.log('Received 401 while loading parts, redirecting to login');
+        navigate('/login');
       }
     } finally {
       setLoading(false);
@@ -281,9 +256,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         throw new Error(response.message || 'Failed to fetch device types');
       }
       setDeviceTypes(response.data);
-    } catch (error) {
-      console.error('Error loading device types:', error);
-      throw error;
+    } catch (err: any) {
+      console.error('Error loading device types:', err);
+      throw err;
     }
   };
 
@@ -294,9 +269,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         throw new Error(response.message || 'Failed to fetch brands');
       }
       setBrands(response.data);
-    } catch (error) {
-      console.error('Error loading brands:', error);
-      throw error;
+    } catch (err: any) {
+      console.error('Error loading brands:', err);
+      throw err;
     }
   };
 
@@ -307,9 +282,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         throw new Error(response.message || 'Failed to fetch models');
       }
       setModels(response.data);
-    } catch (error) {
-      console.error('Error loading models:', error);
-      throw error;
+    } catch (err: any) {
+      console.error('Error loading models:', err);
+      throw err;
     }
   };
 
@@ -369,24 +344,24 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         
         // Brand name in all languages
         const brandName = brand ? (
-          typeof brand.name === 'string'
-            ? brand.name.toLowerCase()
-            : (brand.name?.tr?.toLowerCase() || brand.name?.en?.toLowerCase() || brand.name?.de?.toLowerCase() || '')
+          typeof (brand as any)?.name === 'string'
+            ? (brand as any).name.toLowerCase()
+            : ((brand as any)?.name?.tr?.toLowerCase() || (brand as any)?.name?.en?.toLowerCase() || (brand as any)?.name?.de?.toLowerCase() || '')
         ) : '';
         
         // Model name in all languages
         const modelName = model ? (
-          typeof model.name === 'string'
-            ? model.name.toLowerCase()
-            : (model.name?.tr?.toLowerCase() || model.name?.en?.toLowerCase() || model.name?.de?.toLowerCase() || '')
+          typeof (model as any)?.name === 'string'
+            ? (model as any).name.toLowerCase()
+            : ((model as any)?.name?.tr?.toLowerCase() || (model as any)?.name?.en?.toLowerCase() || (model as any)?.name?.de?.toLowerCase() || '')
         ) : '';
 
         // Category
         const category = part.category?.toLowerCase() || '';
         
         // Numeric values as strings for searching
-        const cost = part.cost?.amount?.toString() || '';
-        const price = part.price?.amount?.toString() || '';
+        const cost = (typeof part.cost === 'number' ? part.cost : part.cost?.amount)?.toString() || '';
+        const price = (typeof part.price === 'number' ? part.price : part.price?.amount)?.toString() || '';
         const serviceFee = part.serviceFee?.amount?.toString() || '';
         const stock = part.stock?.toString() || '';
         const margin = part.margin?.toString() || '';
@@ -554,12 +529,12 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
               branchName: branch.name,
               success: true
             });
-          } catch (error) {
-            console.error(`Error adding part to branch ${branch._id}:`, error);
+          } catch (err: any) {
+            console.error(`Error adding part to branch ${branch._id}:`, err);
             errors.push({
               branchId: branch._id,
               branchName: branch.name,
-              error: error.response?.data?.message || 'Unknown error'
+              error: err.response?.data?.message || 'Unknown error'
             });
           }
         }
@@ -592,15 +567,15 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       // Refresh the parts list
       await loadParts();
       handleCloseDialog();
-    } catch (error) {
-      console.error('Error creating part:', error);
-      showNotification(error.response?.data?.message || 'Parça eklenirken bir hata oluştu', 'error');
+    } catch (err: any) {
+      console.error('Error creating part:', err);
+      showNotification(err.response?.data?.message || 'Parça eklenirken bir hata oluştu', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEditClick = (part: ApiPart) => {
+  const handleEditClick = (part: Part) => {
     try {
       if (!part || !part._id) {
         showNotification('Geçersiz parça verisi', 'error');
@@ -608,9 +583,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       }
 
       // Get the IDs directly from the part object
-      const deviceTypeId = typeof part.deviceTypeId === 'string' ? part.deviceTypeId : part.deviceTypeId?._id || '';
-      const brandId = typeof part.brandId === 'string' ? part.brandId : part.brandId?._id || '';
-      const modelId = typeof part.modelId === 'string' ? part.modelId : part.modelId?._id || '';
+      const deviceTypeId = typeof part.deviceTypeId === 'string' ? part.deviceTypeId : (part.deviceTypeId as any)?._id || '';
+      const brandId = typeof part.brandId === 'string' ? part.brandId : (part.brandId as any)?._id || '';
+      const modelId = typeof part.modelId === 'string' ? part.modelId : (part.modelId as any)?._id || '';
 
       // Set the form data
       setFormData({
@@ -624,14 +599,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         qrCode: part.qrCode || '',
         isActive: part.isActive ?? true,
         code: part.code || '',
-        price: {
-          amount: part.price?.amount || 0,
-          currency: 'EUR'
-        },
-        cost: {
-          amount: part.cost?.amount || 0,
-          currency: 'EUR'
-        },
+        price: typeof part.price === 'number' ? { amount: part.price, currency: 'EUR' } : part.price,
+        cost: typeof part.cost === 'number' ? { amount: part.cost, currency: 'EUR' } : part.cost,
         margin: part.margin || 20,
         minStockLevel: part.minStockLevel || 5,
         shelfNumber: part.shelfNumber || '',
@@ -643,8 +612,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       setEditingPart(part);
       setIsEditing(true);
       setOpenDialog(true);
-    } catch (error) {
-      console.error('Error in handleEditClick:', error);
+    } catch (err: any) {
+      console.error('Error in handleEditClick:', err);
       showNotification("Parça düzenleme sırasında bir hata oluştu", 'error');
     }
   };
@@ -751,9 +720,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           } else {
             console.log(`${branch.name} şubesi güncellendi`, branchResponse.data);
           }
-        } catch (error: any) {
-          console.error(`Şube parçası güncellenirken hata (${branch.name}):`, error);
-          updateErrors.push(`${branch.name}: ${error.message || 'Güncelleme başarısız'}`);
+        } catch (err: any) {
+          console.error(`Şube parçası güncellenirken hata (${branch.name}):`, err);
+          updateErrors.push(`${branch.name}: ${err.message || 'Güncelleme başarısız'}`);
           hasError = true;
         }
       }
@@ -775,10 +744,10 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       setEditingPart(null);
       await fetchParts();
 
-    } catch (error: any) {
-      console.error('Parça güncellenirken hata:', error);
+    } catch (err: any) {
+      console.error('Parça güncellenirken hata:', err);
       showNotification(
-        error.message || 'Parça güncellenirken bir hata oluştu',
+        err.message || 'Parça güncellenirken bir hata oluştu',
         'error'
       );
       hasError = true;
@@ -789,8 +758,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           ? 'Parça güncelleme işlemi hatalarla tamamlandı'
           : 'Parça güncelleme işlemi başarıyla tamamlandı'
       );
-      console.log('Update data:', updateData);
-      console.log('Branch part data:', branchPartData);
     }
   };
 
@@ -806,8 +773,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         await loadParts();
         showNotification('Parça başarıyla silindi', 'success');
       }
-    } catch (error: any) {
-      console.error('Parça silinirken hata:', error);
+    } catch (err: any) {
+      console.error('Parça silinirken hata:', err);
       showNotification('Parça silinirken bir hata oluştu', 'error');
     } finally {
       setLoading(false);
@@ -908,24 +875,24 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         setFormData({
           name: part.name || { tr: '', en: '', de: '' },
           description: part.description || { tr: '', en: '', de: '' },
-          brandId: typeof part.brandId === 'string' ? part.brandId : part.brandId?._id || '',
-          deviceTypeId: typeof part.deviceTypeId === 'string' ? part.deviceTypeId : part.deviceTypeId?._id || '',
-          modelId: typeof part.modelId === 'string' ? part.modelId : part.modelId?._id || '',
+          brandId: typeof part.brandId === 'string' ? part.brandId : (part.brandId as any)?._id || '',
+          deviceTypeId: typeof part.deviceTypeId === 'string' ? part.deviceTypeId : (part.deviceTypeId as any)?._id || '',
+          modelId: typeof part.modelId === 'string' ? part.modelId : (part.modelId as any)?._id || '',
           category: part.category || '',
           barcode: part.barcode || '',
           qrCode: part.qrCode || '',
           isActive: part.isActive ?? true,
-          cost: part.cost || { amount: 0, currency: 'EUR' },
+          cost: typeof part.cost === 'number' ? { amount: part.cost, currency: 'EUR' } : part.cost,
           margin: part.margin || 20,
           minStockLevel: part.minStockLevel || 5,
           shelfNumber: part.shelfNumber || '',
-          price: part.price || { amount: 0, currency: 'EUR' },
+          price: typeof part.price === 'number' ? { amount: part.price, currency: 'EUR' } : part.price,
           stock: part.stock || 0,
           serviceFee: part.serviceFee || { amount: 0, currency: 'EUR' },
           branchId: part.branchId || branchId
         });
-      } catch (error) {
-        console.error('Error in handleOpenDialog:', error);
+      } catch (err: any) {
+        console.error('Error opening dialog:', err);
         showNotification("Parça düzenleme sırasında bir hata oluştu", 'error');
         return;
       }
@@ -965,6 +932,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       description: { tr: '', en: '', de: '' },
       brandId: '',
       deviceTypeId: '',
+      modelId: '',
       category: '',
       barcode: '',
       qrCode: '',
@@ -992,22 +960,22 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       barcode: '',
       qrCode: '',
       isActive: true,
-      compatibleWith: [],
       cost: { amount: 0, currency: 'EUR' },
       margin: 0,
       minStockLevel: 0,
       price: { amount: 0, currency: 'EUR' },
       shelfNumber: '',
       stock: 0,
-      serviceFee: { amount: 0, currency: 'EUR' }
+      serviceFee: { amount: 0, currency: 'EUR' },
+      branchId: branchId
     });
   };
 
   const getRelatedData = (part: Part, deviceTypes: DeviceType[], brands: Brand[], models: Model[]) => {
     // Handle both string IDs and populated objects
-    const deviceTypeId = typeof part.deviceTypeId === 'string' ? part.deviceTypeId : part.deviceTypeId?._id;
-    const brandId = typeof part.brandId === 'string' ? part.brandId : part.brandId?._id;
-    const modelId = typeof part.modelId === 'string' ? part.modelId : part.modelId?._id;
+    const deviceTypeId = typeof part.deviceTypeId === 'string' ? part.deviceTypeId : (part.deviceTypeId as any)?._id || '';
+    const brandId = typeof part.brandId === 'string' ? part.brandId : (part.brandId as any)?._id || '';
+    const modelId = typeof part.modelId === 'string' ? part.modelId : (part.modelId as any)?._id || '';
 
     console.log('Part IDs:', { deviceTypeId, brandId, modelId });
     console.log('Available data:', {
@@ -1148,8 +1116,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
     try {
       const response = await api.get('/api/parts');
       setParts(response.data.data);
-    } catch (error) {
-      console.error('Parçalar yüklenirken hata:', error);
+    } catch (err: any) {
+      console.error('Parçalar yüklenirken hata:', err);
       showNotification("Parçalar yüklenirken bir hata oluştu", 'error');
     }
   };
@@ -1169,18 +1137,18 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         <Grid container spacing={2} alignItems="center">
           {/* First Row: Search and Device Type */}
           <Grid item xs={12} md={6}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Parça adı, marka, model, fiyat, stok vb. ara..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Parça adı, marka, model, fiyat, stok vb. ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
                 endAdornment: searchQuery && (
                   <InputAdornment position="end">
                     <IconButton
@@ -1263,15 +1231,25 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                         {brand.logo ? (
                           <img 
                             src={brand.logo} 
-                            alt={typeof brand.name === 'string' ? brand.name : (brand.name?.tr || brand.name?.en || brand.name?.de || '')} 
+                            alt={
+                              typeof (brand as any)?.name === 'string'
+                                ? (brand as any).name
+                                : ((brand as any)?.name?.tr ||
+                                   (brand as any)?.name?.en ||
+                                   (brand as any)?.name?.de ||
+                                   '-')
+                            } 
                             style={{ width: 24, height: 24, objectFit: 'contain' }}
                           />
                         ) : (
                           <BrandIcon brand={brand} size={24} />
                         )}
-                        {typeof brand.name === 'string' 
-                          ? brand.name 
-                          : (brand.name?.tr || brand.name?.en || brand.name?.de || '-')}
+                        {typeof (brand as any)?.name === 'string' 
+                          ? (brand as any).name 
+                          : ((brand as any)?.name?.tr ||
+                             (brand as any)?.name?.en ||
+                             (brand as any)?.name?.de ||
+                             '-')}
                       </Box>
                     </MenuItem>
                   ))}
@@ -1296,9 +1274,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                 </MenuItem>
                 {filteredModels.map((model) => {
                   const modelId = typeof model._id === 'string' ? model._id : model._id?._id;
-                  const modelName = typeof model.name === 'string'
-                    ? model.name
-                    : (model.name?.tr || model.name?.en || model.name?.de || '-');
+                  const modelName = typeof (model as any)?.name === 'string'
+                    ? (model as any).name
+                    : ((model as any)?.name?.tr || (model as any)?.name?.en || (model as any)?.name?.de || '-');
                   
                   // Get device type for the model
                   const deviceType = deviceTypes.find(dt => {
@@ -1343,13 +1321,13 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                 Filtreleri Sıfırla
               </Button>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
                 onClick={() => handleOpenDialog()}
-        >
-          Yeni Parça
-        </Button>
+              >
+                Yeni Parça
+              </Button>
             </Box>
           </Grid>
         </Grid>
@@ -1389,22 +1367,32 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                         {brand?.logo ? (
                                   <img
                                     src={brand.logo}
-                            alt={typeof brand.name === 'string' ? brand.name : (brand.name?.tr || brand.name?.en || brand.name?.de || '')} 
+                            alt={
+                              typeof (brand as any)?.name === 'string'
+                                ? (brand as any).name
+                                : ((brand as any)?.name?.tr ||
+                                   (brand as any)?.name?.en ||
+                                   (brand as any)?.name?.de ||
+                                   '-')
+                            } 
                             style={{ width: 24, height: 24, objectFit: 'contain' }}
                                   />
                                 ) : (
                           <BrandIcon brand={brand} size={24} />
                         )}
-                        {typeof brand?.name === 'string' 
-                          ? brand.name 
-                          : (brand?.name?.tr || brand?.name?.en || brand?.name?.de || '-')}
+                        {typeof (brand as any)?.name === 'string' 
+                          ? (brand as any).name 
+                          : ((brand as any)?.name?.tr ||
+                             (brand as any)?.name?.en ||
+                             (brand as any)?.name?.de ||
+                             '-')}
                           </Box>
                       </TableCell>
                       <TableCell>
                       {model ? (
-                        typeof model.name === 'string' 
-                          ? model.name 
-                          : (model.name?.tr || model.name?.en || model.name?.de || '-')
+                        typeof (model as any)?.name === 'string' 
+                          ? (model as any).name 
+                          : ((model as any)?.name?.tr || (model as any)?.name?.en || (model as any)?.name?.de || '-')
                       ) : '-'}
                       </TableCell>
                       <TableCell>
@@ -1412,8 +1400,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                         ? part.name 
                         : (part.name?.tr || part.name?.en || part.name?.de || '-')}
                       </TableCell>
-                    <TableCell>{formatEuro(part.cost.amount)}</TableCell>
-                    <TableCell>{formatEuro(part.price.amount)}</TableCell>
+                    <TableCell>{formatEuro(typeof part.cost === 'number' ? part.cost : (part.cost as any)?.amount || 0)}</TableCell>
+                    <TableCell>{formatEuro(typeof part.price === 'number' ? part.price : (part.price as any)?.amount || 0)}</TableCell>
                     <TableCell>{formatEuro(part.serviceFee?.amount || 0)}</TableCell>
                     <TableCell>{part.stock}</TableCell>
                     <TableCell>
@@ -1430,8 +1418,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                           onClick={() => {
                             try {
                               handleOpenDialog(part);
-                            } catch (error) {
-                              console.error('Error opening dialog:', error);
+                            } catch (err) {
+                              console.error('Error opening dialog:', err);
                               showNotification("Parça düzenleme sırasında bir hata oluştu", 'error');
                             }
                           }}
@@ -1493,128 +1481,41 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           <form onSubmit={isEditing ? handleUpdatePart : handleCreatePart}>
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth required error={!!formErrors.deviceTypeId}>
-                    <InputLabel>Cihaz Türü</InputLabel>
-                    <Select
-                      value={formData.deviceTypeId}
-                      onChange={(e) => handleFormChange('deviceTypeId', e.target.value)}
-                      label="Cihaz Türü"
-                    >
-                      {deviceTypes.map((type) => (
-                        <MenuItem key={type._id} value={type._id}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <span className="material-icons-outlined">{type.icon}</span>
-                          {typeof type.name === 'string' 
-                            ? type.name 
-                            : (type.name?.tr || type.name?.en || type.name?.de || '-')}
-                        </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {formErrors.deviceTypeId && (
-                      <FormHelperText>{formErrors.deviceTypeId}</FormHelperText>
-                    )}
-                  </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth required error={!!formErrors.brandId}>
-                    <InputLabel>Marka</InputLabel>
-                    <Select
-                      value={formData.brandId}
-                      onChange={(e) => handleFormChange('brandId', e.target.value)}
-                      label="Marka"
-                      disabled={!formData.deviceTypeId}
-                    >
-                      {brands
-                      .filter(brand => !formData.deviceTypeId || brand.deviceTypeId === formData.deviceTypeId)
-                        .map((brand) => (
-                          <MenuItem key={brand._id} value={brand._id}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            {brand.logo ? (
-                              <img 
-                                src={brand.logo} 
-                                alt={typeof brand.name === 'string' ? brand.name : (brand.name?.tr || brand.name?.en || brand.name?.de || '')} 
-                                style={{ width: 24, height: 24, objectFit: 'contain' }}
-                              />
-                            ) : (
-                              <BrandIcon brand={brand} size={24} />
-                            )}
-                            {typeof brand.name === 'string' 
-                              ? brand.name 
-                              : (brand.name?.tr || brand.name?.en || brand.name?.de || '-')}
-                          </Box>
-                          </MenuItem>
-                        ))}
-                    </Select>
-                    {formErrors.brandId && (
-                      <FormHelperText>{formErrors.brandId}</FormHelperText>
-                    )}
-                  </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth required error={!!formErrors.modelId}>
-                    <InputLabel>Model</InputLabel>
-                    <Select
-                      value={formData.modelId}
-                      onChange={(e) => handleFormChange('modelId', e.target.value)}
-                      label="Model"
-                      disabled={!formData.brandId}
-                    >
-                      {models
-                      .filter(model => !formData.brandId || model.brandId === formData.brandId)
-                        .map((model) => (
-                          <MenuItem key={model._id} value={model._id}>
-                          {typeof model.name === 'string'
-                            ? model.name
-                            : (model.name?.tr || model.name?.en || model.name?.de || '-')}
-                          </MenuItem>
-                        ))}
-                    </Select>
-                    {formErrors.modelId && (
-                      <FormHelperText>{formErrors.modelId}</FormHelperText>
-                    )}
-                  </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
+                <TextField
+                  fullWidth
                   required
-                    label="Parça Adı (TR)"
-                    value={formData.name.tr}
-                    onChange={(e) => handleFormChange('name', { ...formData.name, tr: e.target.value })}
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
-                  />
+                  label="Parça Adı (TR)"
+                  value={formData.name.tr}
+                  onChange={(e) => handleFormChange('name', { ...formData.name, tr: e.target.value })}
+                  error={!!formErrors.name}
+                  helperText={formErrors.name}
+                />
               </Grid>
               <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
+                <TextField
+                  fullWidth
                   required
-                    label="Parça Adı (DE)"
-                    value={formData.name.de}
-                    onChange={(e) => handleFormChange('name', { ...formData.name, de: e.target.value })}
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
-                  />
+                  label="Parça Adı (DE)"
+                  value={formData.name.de}
+                  onChange={(e) => handleFormChange('name', { ...formData.name, de: e.target.value })}
+                  error={!!formErrors.name}
+                  helperText={formErrors.name}
+                />
               </Grid>
               <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
+                <TextField
+                  fullWidth
                   required
-                    label="Parça Adı (EN)"
-                    value={formData.name.en}
-                    onChange={(e) => handleFormChange('name', { ...formData.name, en: e.target.value })}
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
-                  />
+                  label="Parça Adı (EN)"
+                  value={formData.name.en}
+                  onChange={(e) => handleFormChange('name', { ...formData.name, en: e.target.value })}
+                  error={!!formErrors.name}
+                  helperText={formErrors.name}
+                />
               </Grid>
-
               <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
+                <TextField
+                  fullWidth
                   required
                   label="Kategori"
                   value={formData.category}
@@ -1624,8 +1525,8 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                 />
               </Grid>
               <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
+                <TextField
+                  fullWidth
                   type="number"
                   label="Maliyet (€)"
                   value={formData.cost.amount}
@@ -1697,7 +1598,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                   }}
                 />
               </Grid>
-
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
@@ -1736,7 +1636,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                   onChange={(e) => handleFormChange('shelfNumber', e.target.value)}
                 />
               </Grid>
-
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>
                   Açıklamalar
@@ -1772,7 +1671,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                   rows={3}
                 />
               </Grid>
-              </Grid>
+            </Grid>
 
         <DialogActions>
               <Button onClick={handleCloseDialog}>

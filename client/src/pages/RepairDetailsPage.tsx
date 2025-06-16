@@ -1,7 +1,22 @@
 import { useSnackbar } from 'notistack';
+import { 
+  loadRepair,
+  updateRepair,
+  updateRepairStatus,
+  addPart,
+  removePart 
+} from '@/api/repairs';
+import { 
+  UpdateRepairRequest,
+  AddPartRequest,
+  RepairStatus 
+} from '@/types/api';
+import { useParams } from 'react-router-dom';
 
 export default function RepairDetailsPage() {
   const { enqueueSnackbar } = useSnackbar();
+  const { id } = useParams<{ id: string }>();
+  const repairId = id || '';
 
   const handleUpdateRepair = async (data: UpdateRepairRequest) => {
     try {

@@ -19,9 +19,9 @@ export interface Part {
     de?: string;
     en?: string;
   };
-  modelId: string;
-  brandId: string;
-  deviceTypeId: string;
+  modelId: string | { _id: string };
+  brandId: string | { _id: string };
+  deviceTypeId: string | { _id: string };
   category: string;
   barcode?: string;
   qrCode?: string;
@@ -65,6 +65,8 @@ export interface Part {
     email: string;
     fullName: string;
   };
+  branchId?: string;
+  code?: string;
 }
 
 export interface CreatePartRequest {
