@@ -1,0 +1,18 @@
+{
+  "notifications": {
+    "title": "Bildirimler",
+    "markAllAsRead": "Tümünü Okundu İşaretle",
+    "noNotifications": "Yeni bildirim yok",
+    "partUpdated": "{{name}} parçası güncellendi",
+    "partCreated": "Yeni parça eklendi: {{name}}",
+    "partStockUpdated": "{{name}} parçasının stok miktarı güncellendi",
+    "partPriceUpdated": "{{name}} parçasının fiyatı güncellendi"
+  },
+  "admin": {
+    "dashboard": "Yönetici Paneli",
+    "syncBranchParts": "Şube Parçalarını Senkronize Et",
+    "syncing": "Senkronize Ediliyor...",
+    "syncStarted": "Şube parçaları senkronizasyonu başlatıldı",
+    "syncError": "Senkronizasyon sırasında bir hata oluştu"
+  }
+} 

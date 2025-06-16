@@ -1,0 +1,18 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "markAllAsRead": "Mark All as Read",
+    "noNotifications": "No new notifications",
+    "partUpdated": "Part {{name}} has been updated",
+    "partCreated": "New part added: {{name}}",
+    "partStockUpdated": "Stock quantity updated for part {{name}}",
+    "partPriceUpdated": "Price updated for part {{name}}"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "syncBranchParts": "Sync Branch Parts",
+    "syncing": "Syncing...",
+    "syncStarted": "Branch parts synchronization started",
+    "syncError": "An error occurred during synchronization"
+  }
+} 
