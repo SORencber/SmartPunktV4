@@ -51,12 +51,19 @@ app.use(helmet());
 app.use(compression());
 app.use(cors({
   origin: (origin, cb) => {
-    // Development ortamında tüm origin'lere izin ver
+    // Herhangi bir Origin header yoksa (health check, server-server istekleri) izin ver
+    if (!origin) return cb(null, true);
+
+    // Geliştirme ortamında tüm origin'lere izin ver
     if (process.env.NODE_ENV === 'development') {
       return cb(null, true);
     }
-    // Production ortamında sadece belirli origin'lere izin ver
-    if (origin && process.env.ALLOWED_ORIGINS?.split(',').includes(origin)) {
+
+    // ALLOWED_ORIGINS env değişkeni '*' ise tümüne izin ver
+    if (process.env.ALLOWED_ORIGINS === '*') return cb(null, true);
+
+    // Production: listede varsa izin ver
+    if (process.env.ALLOWED_ORIGINS?.split(',').includes(origin)) {
       return cb(null, true);
     }
     cb(new Error('CORS not allowed'), false);
