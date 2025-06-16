@@ -41,6 +41,9 @@ if (!process.env.DATABASE_URL) {
 const app = express();
 const port = process.env.PORT || 5000;
 
+// When behind Render/Heroku/Nginx proxies, trust the first proxy to get correct client IP
+app.set('trust proxy', 1);
+
 // Pretty-print JSON responses
 app.enable('json spaces');
 // We want to be consistent with URL paths, so we enable strict routing
