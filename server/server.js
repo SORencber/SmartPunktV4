@@ -185,6 +185,11 @@ app.use('/api/models', modelRoutes);
 app.use('/api/parts', partRoutes);
 app.use('/api/branch-parts', branchPartRoutes);
 
+// Health check endpoint (for Render)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ success: true, status: 'ok' });
+});
+
 // 404 handler
 app.use((req, res) => {
   logger.warn('Route not found', {
