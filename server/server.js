@@ -231,6 +231,30 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+function printAllRoutes(app) {
+  const routes = [];
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      // Route
+      const methods = Object.keys(middleware.route.methods).join(', ').toUpperCase();
+      routes.push(`${methods} ${middleware.route.path}`);
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          const methods = Object.keys(handler.route.methods).join(', ').toUpperCase();
+          routes.push(`${methods} ${handler.route.path}`);
+        }
+      });
+    }
+  });
+  console.log('--- API ROUTES ---');
+  routes.forEach(route => console.log(route));
+  console.log('------------------');
+}
+
+// Sunucu başlatıldıktan hemen sonra çağır:
+printAllRoutes(app);
+
 // Start server unless running under test
 if (process.env.NODE_ENV !== 'test') {
   app.listen(port, () => {
