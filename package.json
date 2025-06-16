@@ -1,7 +1,6 @@
 {
   "name": "SP",
   "version": "1.0.0",
-  "main": "index.js",
   "scripts": {
     "postinstall": "concurrently -n \"client,server\" \"npm run client-install\" \"npm run server-install\"",
     "test": "npm --prefix server test && npm --prefix client run test",
