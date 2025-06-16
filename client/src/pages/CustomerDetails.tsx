@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
+import { getOrders } from '@/api/orders'
 
 interface CustomerFormData {
   name: string
@@ -35,6 +36,8 @@ export default function CustomerDetails() {
   const [loading, setLoading] = useState(true)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerFormData>()
+  const [orders, setOrders] = useState<any[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
 
   useEffect(() => {
     const fetchCustomer = async () => {
@@ -58,7 +61,25 @@ export default function CustomerDetails() {
       }
     }
 
+    const fetchOrders = async () => {
+      if (!id) return
+      setOrdersLoading(true)
+      try {
+        const response = await getOrders({ search: '', status: 'all', page: 1, limit: 100 })
+        if (response.orders) {
+          // Filter orders by customer ID on the client side
+          const customerOrders = response.orders.filter((order: any) => order.customer === id)
+          setOrders(customerOrders)
+        }
+      } catch (error) {
+        enqueueSnackbar('Siparişler alınamadı', { variant: 'error' })
+      } finally {
+        setOrdersLoading(false)
+      }
+    }
+
     fetchCustomer()
+    fetchOrders()
   }, [id, reset, enqueueSnackbar])
 
   const onSubmit = async (formData: CustomerFormData) => {
@@ -209,6 +230,35 @@ export default function CustomerDetails() {
           </Button>
         </div>
       </form>
+      <div className="mt-10">
+        <h2 className="text-xl font-bold mb-2">Müşteri Siparişleri</h2>
+        {ordersLoading ? (
+          <Loader2 className="h-6 w-6 animate-spin" />
+        ) : orders.length === 0 ? (
+          <p>Bu müşteriye ait sipariş bulunamadı.</p>
+        ) : (
+          <table className="min-w-full border text-sm">
+            <thead>
+              <tr>
+                <th className="border px-2 py-1">Sipariş No</th>
+                <th className="border px-2 py-1">Durum</th>
+                <th className="border px-2 py-1">Tutar</th>
+                <th className="border px-2 py-1">Tarih</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(order => (
+                <tr key={order._id}>
+                  <td className="border px-2 py-1">{order.orderNumber}</td>
+                  <td className="border px-2 py-1">{order.status}</td>
+                  <td className="border px-2 py-1">{order.payment?.amount ?? '-'}</td>
+                  <td className="border px-2 py-1">{order.createdAt ? new Date(order.createdAt).toLocaleString() : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }
