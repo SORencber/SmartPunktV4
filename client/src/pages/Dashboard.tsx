@@ -32,6 +32,7 @@ interface Order {
   status: string
   total: number
   createdAt: string
+  orderNumber?: string
 }
 
 export function Dashboard() {
@@ -101,6 +102,19 @@ export function Dashboard() {
     enqueueSnackbar("Warranty certificate generated", {
       variant: "success",
     })
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Beklemede';
+      case 'in_progress': return 'İşlemde';
+      case 'completed': return 'Tamamlandı';
+      case 'cancelled': return 'İptal Edildi';
+      case 'delivered': return 'Teslim Edildi';
+      case 'waiting_for_parts': return 'Parça Bekliyor';
+      case 'awaiting_approval': return 'Onay Bekliyor';
+      default: return status || '-';
+    }
   }
 
   if (loading) {
@@ -231,31 +245,37 @@ export function Dashboard() {
           <CardDescription>Latest repair orders from your customers</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="grid gap-6 lg:grid-cols-2">
-              {recentOrders.map((order) => (
-                <Card key={order._id} className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                          Order #{order._id.slice(-6)}
-                        </h3>
-                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <Button variant="ghost" size="icon" onClick={() => handleCancelOrder(order._id)}>
-                          Cancel Order
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleGenerateWarranty(order)}>
-                          Generate Warranty
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order No</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tutar</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tarih</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-800">
+                {recentOrders.map((order) => (
+                  <tr
+                    key={order._id}
+                    className="hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition"
+                    onClick={() => window.location.href = `/orders/${order._id}`}
+                  >
+                    <td className="px-4 py-2 font-semibold">{order.orderNumber || order._id.slice(-6) || '-'}</td>
+                    <td className="px-4 py-2">
+                      <span className={getStatusColor(order.status) + " px-2 py-1 rounded text-xs font-semibold"}>
+                        {getStatusText(order.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{order.customerName || '-'}</td>
+                    <td className="px-4 py-2">{order.total != null ? formatCurrency(order.total) : '-'}</td>
+                    <td className="px-4 py-2">{order.createdAt ? formatDate(order.createdAt) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

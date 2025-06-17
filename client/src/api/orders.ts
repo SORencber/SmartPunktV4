@@ -5,12 +5,13 @@ import { createApiWrapper } from '@/utils/apiErrorHandler';
 // Endpoint: GET /api/orders
 // Request: {}
 // Response: { orders: Array<Order> }
-export const getOrders = async ({ search = '', status = 'all', branch, page = 1, limit = 10 }: { search?: string; status?: string; branch?: string; page?: number; limit?: number }) => {
+export const getOrders = async ({ search = '', status = 'all', branch, page = 1, limit = 10, customerId }: { search?: string; status?: string; branch?: string; page?: number; limit?: number; customerId?: string }) => {
   try {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (status && status !== 'all') params.append('status', status);
     if (branch && branch !== 'all') params.append('branch', branch);
+    if (customerId) params.append('customerId', customerId);
     params.append('page', String(page));
     params.append('limit', String(limit));
 

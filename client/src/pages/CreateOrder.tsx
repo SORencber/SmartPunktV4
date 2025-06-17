@@ -123,7 +123,11 @@ interface CreateCustomerData {
 }
 
 export function CreateOrder() {
-  const [currentStep, setCurrentStep] = useState(1)
+  const [searchParams] = useSearchParams();
+  const [currentStep, setCurrentStep] = useState(() => {
+    const stepParam = Number(searchParams.get('step'));
+    return stepParam && !isNaN(stepParam) ? stepParam : 1;
+  });
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [selectedProducts, setSelectedProducts] = useState<any[]>([])
   const [deviceLeftForService, setDeviceLeftForService] = useState(false)
@@ -136,7 +140,6 @@ export function CreateOrder() {
   const [customersLoading, setCustomersLoading] = useState(true)
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
-  const [searchParams] = useSearchParams()
   const [parts, setParts] = useState<Part[]>([])
   const [loadingParts, setLoadingParts] = useState(false)
   const { user } = useAuth()

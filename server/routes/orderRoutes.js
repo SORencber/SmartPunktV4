@@ -9,7 +9,7 @@ const router = express.Router();
 // Get all orders (with branch filtering for branch staff)
 router.get('/', auth, async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search } = req.query;
+    const { page = 1, limit = 10, status, search, customerId } = req.query;
     const branchId = req.user.branchId;
     
     // Build query conditions
@@ -42,6 +42,11 @@ router.get('/', auth, async (req, res) => {
         { 'device.brand': new RegExp(search, 'i') },
         { 'device.model': new RegExp(search, 'i') }
       ];
+    }
+
+    // CustomerId filtering
+    if (customerId) {
+      matchConditions.customerId = customerId;
     }
 
     // Branch filter for admins

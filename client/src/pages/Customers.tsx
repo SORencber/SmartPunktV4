@@ -65,6 +65,7 @@ import {
 } from '@/api/customers';
 import { getAllBranches, type Branch as ApiBranch } from '@/api/branches';
 import { PageContainer } from '@/components/PageContainer';
+import { CreateOrder } from './CreateOrder';
 
 // Types
 interface Customer {
@@ -134,6 +135,9 @@ const Customers: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
+  // Order modal state
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [orderModalStep, setOrderModalStep] = useState(0);
 
   // Check if user is admin
   const isAdmin = user?.role === 'admin' || user?.role === 'central_staff';
@@ -477,451 +481,459 @@ const Customers: React.FC = () => {
 
   return (
     <PageContainer title="Müşteri Yönetimi" description="Müşterilerinizi ve müşteri kayıtlarını yönetin.">
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Müşteri Yönetimi</h1>
-          <div className="flex flex-col gap-1">
-            <p className="text-lg font-semibold text-blue-600">
-              📍 {branch?.name || 'Şube Yükleniyor...'}
-            </p>
-            <p className="text-gray-600">
-              Şube Kodu: {branch?.code || 'Yükleniyor...'} • {filteredCustomers.length} müşteri
-            </p>
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Müşteri Yönetimi</h1>
+            <div className="flex flex-col gap-1">
+              <p className="text-lg font-semibold text-blue-600">
+                📍 {branch?.name || 'Şube Yükleniyor...'}
+              </p>
+              <p className="text-gray-600">
+                Şube Kodu: {branch?.code || 'Yükleniyor...'} • {filteredCustomers.length} müşteri
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                console.log('🔄 Refreshing customer data...');
+                loadCustomers();
+              }}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Search className="h-4 w-4 mr-2" />
+              )}
+              Yenile
+            </Button>
+            
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Yeni Müşteri
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Yeni Müşteri Ekle</DialogTitle>
+                  <DialogDescription>
+                    Yeni bir müşteri kaydı oluşturun. Müşteri otomatik olarak mevcut şubenize ({branch?.name}) atanacaktır.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="create-name">Ad Soyad *</Label>
+                    <Input
+                      id="create-name"
+                      {...register('name')}
+                      placeholder="Müşteri adı"
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="create-phone">Telefon *</Label>
+                    <Input
+                      id="create-phone"
+                      {...register('phone')}
+                      placeholder="05xx xxx xx xx"
+                    />
+                    {errors.phone && (
+                      <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="create-email">Email</Label>
+                    <Input
+                      id="create-email"
+                      type="email"
+                      {...register('email')}
+                      placeholder="ornek@email.com"
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="create-address">Adres</Label>
+                    <Textarea
+                      id="create-address"
+                      {...register('address')}
+                      placeholder="Müşteri adresi"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="create-preferredLanguage">Tercih Edilen Dil</Label>
+                    <Select 
+                      value={watch('preferredLanguage') || 'TR'} 
+                      onValueChange={(value) => setValue('preferredLanguage', value as 'TR' | 'DE' | 'EN')}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TR">🇹🇷 Türkçe</SelectItem>
+                        <SelectItem value="DE">🇩🇪 Deutsch</SelectItem>
+                        <SelectItem value="EN">🇺🇸 English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="create-notes">Notlar</Label>
+                    <Textarea
+                      id="create-notes"
+                      {...register('notes')}
+                      placeholder="Müşteri hakkında notlar"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsCreateDialogOpen(false);
+                        reset();
+                      }}
+                    >
+                      İptal
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Oluşturuluyor...
+                        </>
+                      ) : (
+                        'Oluştur'
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              console.log('🔄 Refreshing customer data...');
-              loadCustomers();
-            }}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Search className="h-4 w-4 mr-2" />
-            )}
-            Yenile
-          </Button>
-          
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Yeni Müşteri
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Yeni Müşteri Ekle</DialogTitle>
-                <DialogDescription>
-                  Yeni bir müşteri kaydı oluşturun. Müşteri otomatik olarak mevcut şubenize ({branch?.name}) atanacaktır.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4">
-                <div>
-                  <Label htmlFor="create-name">Ad Soyad *</Label>
+        {/* Search Filter */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex space-x-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="create-name"
-                    {...register('name')}
-                    placeholder="Müşteri adı"
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="create-phone">Telefon *</Label>
-                  <Input
-                    id="create-phone"
-                    {...register('phone')}
-                    placeholder="05xx xxx xx xx"
-                  />
-                  {errors.phone && (
-                    <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="create-email">Email</Label>
-                  <Input
-                    id="create-email"
-                    type="email"
-                    {...register('email')}
-                    placeholder="ornek@email.com"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <Label htmlFor="create-address">Adres</Label>
-                  <Textarea
-                    id="create-address"
-                    {...register('address')}
-                    placeholder="Müşteri adresi"
-                    rows={2}
+                    placeholder="Müşteri ara (isim, telefon, email)..."
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      console.log('🔍 Search input changed:', e.target.value);
+                      setSearchTerm(e.target.value);
+                    }}
                   />
                 </div>
-
-                <div>
-                  <Label htmlFor="create-preferredLanguage">Tercih Edilen Dil</Label>
-                  <Select 
-                    value={watch('preferredLanguage') || 'TR'} 
-                    onValueChange={(value) => setValue('preferredLanguage', value as 'TR' | 'DE' | 'EN')}
-                  >
+              </div>
+              
+              {/* Branch filter for admin users */}
+              {isAdmin && branches.length > 0 && (
+                <div className="w-48">
+                  <Select value={selectedBranchFilter} onValueChange={setSelectedBranchFilter}>
                     <SelectTrigger>
+                      <Building className="h-4 w-4 mr-2" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="TR">🇹🇷 Türkçe</SelectItem>
-                      <SelectItem value="DE">🇩🇪 Deutsch</SelectItem>
-                      <SelectItem value="EN">🇺🇸 English</SelectItem>
+                      <SelectItem value="all">Tüm Şubeler</SelectItem>
+                      {branches.map((branch) => (
+                        <SelectItem key={branch._id} value={branch._id}>
+                          {branch.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-                <div>
-                  <Label htmlFor="create-notes">Notlar</Label>
-                  <Textarea
-                    id="create-notes"
-                    {...register('notes')}
-                    placeholder="Müşteri hakkında notlar"
-                    rows={2}
-                  />
+        {/* Customer List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Müşteri Listesi</CardTitle>
+            <CardDescription>
+              {filteredCustomers.length} müşteri bulundu
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredCustomers.length === 0 ? (
+              <div className="text-center p-8 text-gray-500">
+                {searchTerm 
+                  ? 'Arama kriterlerinize uygun müşteri bulunamadı'
+                  : 'Henüz müşteri kaydı bulunmuyor'
+                }
+                <div className="text-xs text-gray-400 mt-2">
+                  Debug: Total customers: {customers.length}, Filtered: {filteredCustomers.length}
                 </div>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {filteredCustomers.map((customer) => (
+                  <Card key={customer._id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-lg">{customer.name}</h3>
+                            <Badge variant="outline">
+                              {customer.preferredLanguage === 'TR' ? '🇹🇷' : 
+                               customer.preferredLanguage === 'DE' ? '🇩🇪' : '🇺🇸'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-4 w-4" />
+                              {customer.phone}
+                            </div>
+                            
+                            {customer.email && (
+                              <div className="flex items-center gap-1">
+                                <Mail className="h-4 w-4" />
+                                {customer.email}
+                              </div>
+                            )}
+                            
+                            {customer.address && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {formatAddress(customer.address).substring(0, 30)}...
+                              </div>
+                            )}
+                          </div>
 
-                <div className="flex justify-end space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsCreateDialogOpen(false);
-                      reset();
-                    }}
-                  >
-                    İptal
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Oluşturuluyor...
-                      </>
-                    ) : (
-                      'Oluştur'
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+                          {isAdmin && customer.branch && (
+                            <div className="flex items-center gap-1 text-sm text-blue-600">
+                              <Building className="h-4 w-4" />
+                              {customer.branch.name}
+                            </div>
+                          )}
 
-      {/* Search Filter */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                          {customer.createdByUser && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <User className="h-3 w-3" />
+                              {customer.createdByUser.fullName} tarafından eklendi
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/customers/${customer._id}`)}
+                            title="Müşteri Detayları"
+                          >
+                            <Eye className="h-4 w-4 text-blue-500" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setOrderModalOpen(true);
+                            }}
+                            title="Sipariş Ekle"
+                          >
+                            <ShoppingCart className="h-4 w-4 text-green-500" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(customer)}
+                            title="Düzenle"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedCustomer(customer);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            title="Sil"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Müşteri Düzenle</DialogTitle>
+              <DialogDescription>
+                Müşteri bilgilerini güncelleyin
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Ad Soyad *</Label>
                 <Input
-                  placeholder="Müşteri ara (isim, telefon, email)..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    console.log('🔍 Search input changed:', e.target.value);
-                    setSearchTerm(e.target.value);
-                  }}
+                  id="edit-name"
+                  {...register('name')}
+                  placeholder="Müşteri adı"
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="edit-phone">Telefon *</Label>
+                <Input
+                  id="edit-phone"
+                  {...register('phone')}
+                  placeholder="05xx xxx xx xx"
+                />
+                {errors.phone && (
+                  <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="ornek@email.com"
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="edit-address">Adres</Label>
+                <Textarea
+                  id="edit-address"
+                  {...register('address')}
+                  placeholder="Müşteri adresi"
+                  rows={2}
                 />
               </div>
-            </div>
-            
-            {/* Branch filter for admin users */}
-            {isAdmin && branches.length > 0 && (
-              <div className="w-48">
-                <Select value={selectedBranchFilter} onValueChange={setSelectedBranchFilter}>
+
+              <div>
+                <Label htmlFor="edit-preferredLanguage">Tercih Edilen Dil</Label>
+                <Select 
+                  value={watch('preferredLanguage')} 
+                  onValueChange={(value) => setValue('preferredLanguage', value as 'TR' | 'DE' | 'EN')}
+                >
                   <SelectTrigger>
-                    <Building className="h-4 w-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tüm Şubeler</SelectItem>
-                    {branches.map((branch) => (
-                      <SelectItem key={branch._id} value={branch._id}>
-                        {branch.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="TR">🇹🇷 Türkçe</SelectItem>
+                    <SelectItem value="DE">🇩🇪 Deutsch</SelectItem>
+                    <SelectItem value="EN">🇺🇸 English</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Customer List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Müşteri Listesi</CardTitle>
-          <CardDescription>
-            {filteredCustomers.length} müşteri bulundu
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredCustomers.length === 0 ? (
-            <div className="text-center p-8 text-gray-500">
-              {searchTerm 
-                ? 'Arama kriterlerinize uygun müşteri bulunamadı'
-                : 'Henüz müşteri kaydı bulunmuyor'
-              }
-              <div className="text-xs text-gray-400 mt-2">
-                Debug: Total customers: {customers.length}, Filtered: {filteredCustomers.length}
+              <div>
+                <Label htmlFor="edit-notes">Notlar</Label>
+                <Textarea
+                  id="edit-notes"
+                  {...register('notes')}
+                  placeholder="Müşteri hakkında notlar"
+                  rows={2}
+                />
               </div>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {filteredCustomers.map((customer) => (
-                <Card key={customer._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-semibold text-lg">{customer.name}</h3>
-                          <Badge variant="outline">
-                            {customer.preferredLanguage === 'TR' ? '🇹🇷' : 
-                             customer.preferredLanguage === 'DE' ? '🇩🇪' : '🇺🇸'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-4 w-4" />
-                            {customer.phone}
-                          </div>
-                          
-                          {customer.email && (
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-4 w-4" />
-                              {customer.email}
-                            </div>
-                          )}
-                          
-                          {customer.address && (
-                            <div className="flex items-center gap-1">
-                              <MapPin className="h-4 w-4" />
-                              {formatAddress(customer.address).substring(0, 30)}...
-                            </div>
-                          )}
-                        </div>
 
-                        {isAdmin && customer.branch && (
-                          <div className="flex items-center gap-1 text-sm text-blue-600">
-                            <Building className="h-4 w-4" />
-                            {customer.branch.name}
-                          </div>
-                        )}
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setSelectedCustomer(null);
+                    reset();
+                  }}
+                >
+                  İptal
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Güncelleniyor...
+                    </>
+                  ) : (
+                    'Güncelle'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
-                        {customer.createdByUser && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <User className="h-3 w-3" />
-                            {customer.createdByUser.fullName} tarafından eklendi
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/customers/${customer._id}`)}
-                          title="Müşteri Detayları"
-                        >
-                          <Eye className="h-4 w-4 text-blue-500" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/orders/create?customerId=${customer._id}`)}
-                          title="Sipariş Ekle"
-                        >
-                          <ShoppingCart className="h-4 w-4 text-green-500" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(customer)}
-                          title="Düzenle"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedCustomer(customer);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                          title="Sil"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Müşteri Düzenle</DialogTitle>
-            <DialogDescription>
-              Müşteri bilgilerini güncelleyin
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
-            <div>
-              <Label htmlFor="edit-name">Ad Soyad *</Label>
-              <Input
-                id="edit-name"
-                {...register('name')}
-                placeholder="Müşteri adı"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="edit-phone">Telefon *</Label>
-              <Input
-                id="edit-phone"
-                {...register('phone')}
-                placeholder="05xx xxx xx xx"
-              />
-              {errors.phone && (
-                <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                {...register('email')}
-                placeholder="ornek@email.com"
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="edit-address">Adres</Label>
-              <Textarea
-                id="edit-address"
-                {...register('address')}
-                placeholder="Müşteri adresi"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="edit-preferredLanguage">Tercih Edilen Dil</Label>
-              <Select 
-                value={watch('preferredLanguage')} 
-                onValueChange={(value) => setValue('preferredLanguage', value as 'TR' | 'DE' | 'EN')}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TR">🇹🇷 Türkçe</SelectItem>
-                  <SelectItem value="DE">🇩🇪 Deutsch</SelectItem>
-                  <SelectItem value="EN">🇺🇸 English</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-notes">Notlar</Label>
-              <Textarea
-                id="edit-notes"
-                {...register('notes')}
-                placeholder="Müşteri hakkında notlar"
-                rows={2}
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setIsEditDialogOpen(false);
-                  setSelectedCustomer(null);
-                  reset();
-                }}
-              >
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Müşteriyi Sil</AlertDialogTitle>
+              <AlertDialogDescription>
+                "{selectedCustomer?.name}" adlı müşteriyi silmek istediğinizden emin misiniz? 
+                Bu işlem geri alınamaz.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setSelectedCustomer(null)}>
                 İptal
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Güncelleniyor...
-                  </>
-                ) : (
-                  'Güncelle'
-                )}
-              </Button>
-            </div>
-          </form>
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onDelete}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                Sil
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+      {/* Sipariş Ekle Modalı */}
+      <Dialog open={orderModalOpen} onOpenChange={setOrderModalOpen}>
+        <DialogContent className="w-full max-w-3xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 sm:p-6 flex flex-col justify-center items-center">
+          <CreateOrder />
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Müşteriyi Sil</AlertDialogTitle>
-            <AlertDialogDescription>
-              "{selectedCustomer?.name}" adlı müşteriyi silmek istediğinizden emin misiniz? 
-              Bu işlem geri alınamaz.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedCustomer(null)}>
-              İptal
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={onDelete}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              Sil
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
     </PageContainer>
   );
 };

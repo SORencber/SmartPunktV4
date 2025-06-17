@@ -322,17 +322,13 @@ router.delete('/:id', protect, validateObjectId, async (req, res) => {
       });
     }
 
-    // Check if customer has any orders
-    if (customer.totalOrders > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Siparişi olan müşteriler silinemez'
-      });
-    }
+    // Önce müşterinin tüm siparişlerini sil
+    await Order.deleteMany({ customerId: req.params.id });
 
+    // Sonra müşteriyi sil
     await Customer.findByIdAndDelete(req.params.id);
 
-    logger.info('Customer deleted successfully', {
+    logger.info('Customer and related orders deleted successfully', {
       userId: req.user._id,
       customerId: req.params.id,
       branchId: req.user.branch
@@ -340,7 +336,7 @@ router.delete('/:id', protect, validateObjectId, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Müşteri başarıyla silindi'
+      message: 'Müşteri ve tüm siparişleri başarıyla silindi'
     });
   } catch (error) {
     logger.error('Error deleting customer', {
