@@ -274,7 +274,7 @@ export function Inventory() {
       return []
     }
     return models
-      .filter(model => model && model.brandId === selectedBrand)
+      .filter(model => model && model.brandId === selectedBrand && model.name)
       .sort((a, b) => getDisplayName(a.name as any).localeCompare(getDisplayName(b.name as any)))
   }, [models, selectedBrand])
 
