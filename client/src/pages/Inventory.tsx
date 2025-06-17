@@ -96,6 +96,13 @@ interface PartUpdateData {
   };
 }
 
+// Helper function to get display name from any name field (string or object)
+const getDisplayName = (name: string | { tr?: string; en?: string; de?: string; } | undefined): string => {
+  if (!name) return 'İsimsiz';
+  if (typeof name === 'string') return name;
+  return name.tr || name.en || name.de || 'İsimsiz';
+};
+
 export function Inventory() {
   // Hooks
   const { user, isAuthenticated } = useAuth();
@@ -438,13 +445,6 @@ export function Inventory() {
     } finally {
       setIsUpdating(false);
     }
-  };
-
-  // Helper function to get display name from any name field (string or object)
-  const getDisplayName = (name: string | { tr?: string; en?: string; de?: string; } | undefined): string => {
-    if (!name) return 'İsimsiz';
-    if (typeof name === 'string') return name;
-    return name.tr || name.en || name.de || 'İsimsiz';
   };
 
   // Helper function to get model display name
