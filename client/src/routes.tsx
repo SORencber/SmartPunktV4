@@ -31,6 +31,7 @@ import Roles from '@/pages/Roles';
 import { useAuth } from './contexts/AuthContext';
 import { BranchProvider } from '@/contexts/BranchContext';
 import RepairsPage from './pages/RepairsPage';
+import RepairDetailsPage from './pages/RepairDetailsPage';
 
 const AppRoutes = () => {
   const { user, isLoading } = useAuth();
@@ -74,6 +75,7 @@ const AppRoutes = () => {
         <Route path="/products" element={<Products />} />
         <Route path="/create-product" element={<CreateProduct />} />
         <Route path="/repairs" element={<RepairsPage />} />
+        <Route path="/repairs/:id" element={<RepairDetailsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

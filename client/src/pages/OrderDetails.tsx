@@ -37,6 +37,7 @@ import { getModels, type Model } from '@/api/models';
 interface Order {
   _id: string
   orderNumber: string
+  orderId?: string
   customerId: {
     _id: string
     name: string
@@ -517,7 +518,7 @@ export function OrderDetails() {
                 >
                   <div>
                     <p className="font-medium text-white">
-                      {getDisplayName(it.name)}
+                      {getDisplayNameDe(it.name)}
                     </p>
                     <p className="text-sm text-blue-100">
                       {it.quantity} × {formatCurrency(it.unitPrice)}
@@ -768,7 +769,7 @@ export function OrderDetails() {
                 </div>
                 <div className="border-b pb-2">
                   <p className="font-semibold">Garantierte Teile</p>
-                  {(order.items ?? []).length > 0 ? (
+                  {order.items && order.items.length > 0 ? (
                     <ul className="list-disc ml-6">
                       {order.items.map((it: any, idx: number) => (
                         <li key={idx}>{getDisplayNameDe(it.name)} x{it.quantity}</li>

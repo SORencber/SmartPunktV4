@@ -32,6 +32,7 @@ const brandRoutes = require('./routes/brandRoutes');
 const modelRoutes = require('./routes/modelRoutes');
 const partRoutes = require('./routes/partRoutes');
 const branchPartRoutes = require('./routes/branchPartRoutes');
+const { initWhatsApp } = require('./services/messageService');
 
 if (!process.env.DATABASE_URL) {
   logger.error('DATABASE_URL environment variable is missing');
@@ -169,8 +170,11 @@ i18next
 app.use(i18nextMiddleware.handle(i18next));
 */
 
+// Initialize WhatsApp client on server startup
+initWhatsApp();
+
 // API Routes
-app.use('/', basicRoutes);
+app.use('/api', basicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/customers', customerRoutes);

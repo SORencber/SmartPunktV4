@@ -96,7 +96,7 @@ interface Customer {
 
 // Form validation schema
 const customerSchema = z.object({
-  name: z.string().min(2, 'İsim en az 2 karakter olmalıdır'),
+  name: z.string().optional(),
   phone: z.string().min(10, 'Telefon numarası en az 10 haneli olmalıdır'),
   email: z.union([
     z.string().email('Geçerli bir email adresi giriniz'),
@@ -361,6 +361,11 @@ const Customers: React.FC = () => {
         createdBy: user?.id || user?._id || (user as any)?._id
       };
 
+      // Eğer isim boşsa, otomatik SP ile başlayan bir değer ata
+      if (!customerData.name || customerData.name.trim() === '') {
+        customerData.name = `SP${Math.floor(100000 + Math.random() * 900000)}`;
+      }
+
       // Always use user's current branch - no manual branch selection
       const userBranchId = (user as any)?.branchId || 
                          user?.branchId || 
@@ -401,12 +406,12 @@ const Customers: React.FC = () => {
   // Edit customer
   const openEditDialog = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setValue('name', customer.name);
-    setValue('phone', customer.phone);
+    setValue('name', customer.name || '');
+    setValue('phone', customer.phone || '');
     setValue('email', customer.email || '');
-    setValue('address', customer.address || '');
+    setValue('address', typeof customer.address === 'string' ? customer.address : '');
     setValue('preferredLanguage', customer.preferredLanguage);
-    setValue('notes', customer.notes || '');
+    setValue('notes', typeof customer.notes === 'string' ? customer.notes : '');
     setIsEditDialogOpen(true);
   };
 
@@ -520,7 +525,7 @@ const Customers: React.FC = () => {
                   Yeni Müşteri
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-full max-w-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 sm:p-6 flex flex-col justify-center items-center">
                 <DialogHeader>
                   <DialogTitle>Yeni Müşteri Ekle</DialogTitle>
                   <DialogDescription>
@@ -795,7 +800,7 @@ const Customers: React.FC = () => {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-full max-w-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 sm:p-6 flex flex-col justify-center items-center">
             <DialogHeader>
               <DialogTitle>Müşteri Düzenle</DialogTitle>
               <DialogDescription>

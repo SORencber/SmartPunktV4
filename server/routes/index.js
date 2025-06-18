@@ -29,6 +29,7 @@ router.use('/tracking', trackingRoutes);
 router.use('/reports', reportRoutes);
 router.use('/products', productRoutes);
 router.use('/models', modelRoutes);
+router.use('/repairs', require('./repairRoutes'));
 
 // Root path response
 router.get("/", (req, res) => {

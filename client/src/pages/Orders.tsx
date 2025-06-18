@@ -35,6 +35,7 @@ import { useReactToPrint } from 'react-to-print';
 import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getDeviceTypes, DeviceType } from '@/api/deviceTypes';
+import { getParts, Part as ApiPart } from '@/api/parts';
 
 interface Order {
   _id: string;
@@ -64,6 +65,7 @@ interface Order {
   branchSnapshot?: any;
   branch?: any;
   totalCentralPayment?: number;
+  serviceFee?: number;
 }
 
 const getDisplayName = (val:any) => {
@@ -72,6 +74,19 @@ const getDisplayName = (val:any) => {
   if (typeof val === 'object') return val.tr || val.en || val.de || '';
   return String(val);
 };
+
+// Parça ismini Almanca (name.de) öncelikli olarak döndürür, yoksa diğer dilleri veya ilk mevcut ismi kullanır.
+function getDisplayNameDe(val: any) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'object') return val.de || val.en || val.tr || Object.values(val)[0] || '';
+  return String(val);
+}
+
+// Teknik servis ücretlerini toplayan yardımcı fonksiyon
+function getTotalServiceFee(orders: any[]) {
+  return orders.reduce((sum, order) => sum + (order.serviceFee || 0), 0);
+}
 
 export function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -100,6 +115,15 @@ export function Orders() {
   });
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedShippedOrderIds, setSelectedShippedOrderIds] = useState<string[]>([]);
+  const [showBulkInvoice, setShowBulkInvoice] = useState(false);
+  const bulkInvoiceRef = useRef<HTMLDivElement>(null);
+  const handleBulkInvoicePrint = useReactToPrint({
+    contentRef: bulkInvoiceRef,
+    documentTitle: 'Toplu-Fatura',
+  });
+  const [readyToPrint, setReadyToPrint] = useState(false);
+  const [parts, setParts] = useState<ApiPart[]>([]);
 
   const loadOrders = async () => {
     try {
@@ -142,6 +166,8 @@ export function Orders() {
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'delivered':
+        return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
@@ -168,6 +194,7 @@ export function Orders() {
     getBrands().then(res => setBrands(res.data));
     getModels().then(res => setModels(res.data));
     getDeviceTypes().then(res => setDeviceTypes(res.data));
+    getParts().then(res => setParts(res.data));
   }, []);
 
   useEffect(() => {
@@ -192,6 +219,8 @@ export function Orders() {
         return 'bg-gradient-to-r from-yellow-100 via-white to-yellow-50';
       case 'shipped':
         return 'bg-gradient-to-r from-orange-200 via-white to-orange-100';
+      case 'delivered':
+        return 'bg-gradient-to-r from-cyan-100 via-white to-cyan-50';
       case 'completed':
         return 'bg-gradient-to-r from-green-100 via-white to-green-50';
       case 'cancelled':
@@ -200,6 +229,22 @@ export function Orders() {
         return 'bg-gradient-to-r from-gray-100 via-white to-gray-50';
     }
   };
+
+  useEffect(() => {
+    if (showBulkInvoice) {
+      // DOM'a eklenmesi için küçük bir gecikme
+      setTimeout(() => setReadyToPrint(true), 100);
+    }
+  }, [showBulkInvoice]);
+
+  useEffect(() => {
+    if (readyToPrint && bulkInvoiceRef.current) {
+      handleBulkInvoicePrint();
+      setShowBulkInvoice(false);
+      setReadyToPrint(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readyToPrint]);
 
   if (loading) {
     return (
@@ -250,6 +295,7 @@ export function Orders() {
               <SelectItem value="all">Tüm Durumlar</SelectItem>
               <SelectItem value="pending">Beklemede</SelectItem>
               <SelectItem value="shipped">Kargoda</SelectItem>
+              <SelectItem value="delivered">Kargo Alındı</SelectItem>
               <SelectItem value="completed">Tamamlandı</SelectItem>
               <SelectItem value="cancelled">İptal</SelectItem>
             </SelectContent>
@@ -305,6 +351,7 @@ export function Orders() {
               <table className="min-w-full text-sm border rounded-xl bg-white dark:bg-slate-800">
                 <thead>
                   <tr className="bg-orange-100 dark:bg-orange-900">
+                    <th className="px-3 py-2 text-left"><input type="checkbox" checked={selectedShippedOrderIds.length === shippedOrders.length} onChange={e => setSelectedShippedOrderIds(e.target.checked ? shippedOrders.map(o => o._id) : [])} /></th>
                     <th className="px-3 py-2 text-left">Sipariş Tarihi</th>
                     <th className="px-3 py-2 text-left">Sipariş No</th>
                     <th className="px-3 py-2 text-left">Şube</th>
@@ -340,6 +387,19 @@ export function Orders() {
 
                     return (
                       <tr key={order._id} className={getRowBgClass(order.status)}>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedShippedOrderIds.includes(order._id)}
+                            onChange={e => {
+                              setSelectedShippedOrderIds(ids =>
+                                e.target.checked
+                                  ? [...ids, order._id]
+                                  : ids.filter(id => id !== order._id)
+                              );
+                            }}
+                          />
+                        </td>
                         <td className="px-3 py-2">{formatDate(order.createdAt)}</td>
                         <td className="px-3 py-2">{order.orderId}</td>
                         <td className="px-3 py-2">{order.branch?.name || order.branchSnapshot?.name || '-'}</td>
@@ -351,7 +411,7 @@ export function Orders() {
                         <td className="px-3 py-2">
                           {order.items && order.items.length > 0
                             ? order.items.map((item, idx) => (
-                                <span key={idx} className="block">{item.name} x {item.quantity}</span>
+                                <span key={idx} className="block">{getDisplayNameDe(item.name)} x {item.quantity}</span>
                               ))
                             : '-'}
                         </td>
@@ -379,6 +439,7 @@ export function Orders() {
                             <SelectContent>
                               <SelectItem value="pending">Beklemede</SelectItem>
                               <SelectItem value="shipped">Kargoda</SelectItem>
+                              <SelectItem value="delivered">Kargo Alındı</SelectItem>
                               <SelectItem value="completed">Tamamlandı</SelectItem>
                               <SelectItem value="cancelled">İptal</SelectItem>
                             </SelectContent>
@@ -403,6 +464,17 @@ export function Orders() {
                   })}
                 </tbody>
               </table>
+            </div>
+            {/* Fatura Yazdır Butonu */}
+            <div className="mt-4 flex justify-end">
+              <Button
+                variant="outline"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                disabled={selectedShippedOrderIds.length === 0}
+                onClick={() => setShowBulkInvoice(true)}
+              >
+                <Printer className="w-4 h-4 mr-2" /> Fatura Yazdır
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -500,6 +572,7 @@ export function Orders() {
                             <SelectContent>
                               <SelectItem value="pending">Beklemede</SelectItem>
                               <SelectItem value="shipped">Kargoda</SelectItem>
+                              <SelectItem value="delivered">Kargo Alındı</SelectItem>
                               <SelectItem value="completed">Tamamlandı</SelectItem>
                               <SelectItem value="cancelled">İptal</SelectItem>
                             </SelectContent>
@@ -747,6 +820,119 @@ export function Orders() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <div style={{ display: 'none' }}>
+        <div ref={bulkInvoiceRef} className="bg-white p-8 rounded shadow print:block" style={{ width: 700, fontFamily: 'Arial, sans-serif' }}>
+          {showBulkInvoice && selectedShippedOrderIds.length > 0 && (
+            <>
+              {/* Logo ve başlık */}
+              <div className="flex items-center mb-8">
+                <img src="/logo192.png" alt="Logo" style={{ height: 64, marginRight: 24 }} />
+                <div>
+                  <h2 className="text-2xl font-bold">RECHNUNG</h2>
+                  <div className="text-sm text-gray-600">Smart Punkt GmbH</div>
+                  <div className="text-xs text-gray-400">Erbprinzenstr. 21, 76133 Karlsruhe, Deutschland</div>
+                </div>
+              </div>
+              <div className="mb-4 text-sm text-gray-700">
+                Datum: {new Date().toLocaleDateString('de-DE')}
+              </div>
+              {/* Parçalar Tablosu */}
+              <table className="min-w-full text-sm border rounded-xl bg-white mb-8" style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr className="bg-blue-100">
+                    <th className="px-3 py-2 text-left border">Teil</th>
+                    <th className="px-3 py-2 text-left border">Stückpreis (€)</th>
+                    <th className="px-3 py-2 text-left border">Menge</th>
+                    <th className="px-3 py-2 text-left border">Gesamt (€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    // Seçili siparişlerdeki tüm parçaları partId'ye göre grupla
+                    const partMap = new Map();
+                    const selectedOrders = orders.filter(o => selectedShippedOrderIds.includes(o._id));
+                    selectedOrders.forEach(order => {
+                      (order.items || []).forEach(item => {
+                        const key = item.partId || getDisplayNameDe(item.name); // partId varsa onunla, yoksa isimle grupla
+                        const partObj = item.partId ? parts.find(p => p._id === item.partId) : undefined;
+                        const nameDe = partObj?.name?.de || getDisplayNameDe(item.name);
+                        if (!partMap.has(key)) {
+                          partMap.set(key, {
+                            name: nameDe,
+                            unitPrice: item.unitPrice || 0,
+                            quantity: 0,
+                            total: 0,
+                          });
+                        }
+                        const entry = partMap.get(key);
+                        entry.quantity += item.quantity;
+                        entry.total += (item.unitPrice || 0) * item.quantity;
+                      });
+                    });
+                    const partRows = Array.from(partMap.values()).map((part, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2 border">{part.name}</td>
+                        <td className="px-3 py-2 border">{part.unitPrice.toFixed(2)}</td>
+                        <td className="px-3 py-2 border">{part.quantity}</td>
+                        <td className="px-3 py-2 border">{part.total.toFixed(2)}</td>
+                      </tr>
+                    ));
+                    // Her order için serviceFee satırı ekle
+                    const serviceFeeRows = selectedOrders
+                      .filter(order => order.serviceFee && order.serviceFee > 0)
+                      .map((order, idx) => {
+                        const branchName = order.branchSnapshot?.name || order.branch?.name || '-';
+                        return (
+                          <tr key={"servicefee-"+order._id}>
+                            <td className="px-3 py-2 border" colSpan={2}><b>Technische Servicegebühr ({branchName})</b></td>
+                            <td className="px-3 py-2 border text-center">1</td>
+                            <td className="px-3 py-2 border">{order.serviceFee.toFixed(2)}</td>
+                          </tr>
+                        );
+                      });
+                    return [...partRows, ...serviceFeeRows];
+                  })()}
+                  {/* Teknik servis ücreti satırı */}
+                  {(() => {
+                    const selectedOrders = orders.filter(o => selectedShippedOrderIds.includes(o._id));
+                    const totalServiceFee = getTotalServiceFee(selectedOrders);
+                    if (totalServiceFee > 0) {
+                      return (
+                        <tr>
+                          <td className="px-3 py-2 border" colSpan={2}><b>Technische Servicegebühr</b></td>
+                          <td className="px-3 py-2 border text-center">1</td>
+                          <td className="px-3 py-2 border">{totalServiceFee.toFixed(2)}</td>
+                        </tr>
+                      );
+                    }
+                    return null;
+                  })()}
+                </tbody>
+              </table>
+              <div className="text-right font-bold text-lg mt-4">
+                Gesamtsumme: € {(() => {
+                  // Toplam fiyatı hesapla
+                  const partMap = new Map();
+                  const selectedOrders = orders.filter(o => selectedShippedOrderIds.includes(o._id));
+                  selectedOrders.forEach(order => {
+                    (order.items || []).forEach(item => {
+                      const key = item.partId || getDisplayNameDe(item.name);
+                      if (!partMap.has(key)) {
+                        partMap.set(key, 0);
+                      }
+                      partMap.set(key, partMap.get(key) + (item.unitPrice || 0) * item.quantity);
+                    });
+                  });
+                  // Tüm serviceFee'leri topla
+                  const totalServiceFee = selectedOrders.reduce((sum, order) => sum + (order.serviceFee || 0), 0);
+                  return (Array.from(partMap.values()).reduce((a, b) => a + b, 0) + totalServiceFee).toFixed(2);
+                })()}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

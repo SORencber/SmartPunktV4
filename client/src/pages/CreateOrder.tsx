@@ -238,19 +238,20 @@ export function CreateOrder() {
     if (!branch.address) {
       // skip
     } else if (typeof branch.address === 'string') {
-      if (branch.address && branch.address.trim()) lines.push(branch.address.trim());
+      const trimmedAddress = (branch.address as string).trim();
+      if (trimmedAddress) lines.push(trimmedAddress);
     } else if (typeof branch.address === 'object') {
-      const street = branch.address.street ? String(branch.address.street).trim() : '';
+      const street = typeof branch.address.street === 'string' ? branch.address.street.trim() : '';
       if (street) lines.push(street);
 
-      const postalCode = branch.address.postalCode ? String(branch.address.postalCode).trim() : '';
-      const city = branch.address.city ? String(branch.address.city).trim() : '';
+      const postalCode = typeof branch.address.postalCode === 'string' ? branch.address.postalCode.trim() : '';
+      const city = typeof branch.address.city === 'string' ? branch.address.city.trim() : '';
       if (postalCode || city) lines.push([postalCode, city].filter(Boolean).join(' '));
 
-      const state = branch.address.state ? String(branch.address.state).trim() : '';
+      const state = typeof branch.address.state === 'string' ? branch.address.state.trim() : '';
       if (state) lines.push(state);
 
-      const country = branch.address.country ? String(branch.address.country).trim() : '';
+      const country = typeof branch.address.country === 'string' ? branch.address.country.trim() : '';
       if (country) lines.push(country);
     }
 
@@ -510,29 +511,20 @@ export function CreateOrder() {
     return part.name.tr || part.name.en || part.name.de || 'Unnamed Part';
   };
 
-  // Helper function to get part price safely
-  const getPartPrice = (part: Part | undefined) => {
-    if (!part) return 0;
-    // Branch-specific price logic handled here
-    if (typeof part.branch_price === 'number') return part.branch_price;
-    if (typeof part.branch_price === 'object' && part.branch_price?.amount) return part.branch_price.amount;
-    if (typeof part.price === 'number') return part.price;
-    if (typeof part.price === 'object' && part.price?.amount) return part.price.amount;
+  const extractAmount = (val: any): number => {
+    if (typeof val === 'number') return val;
+    if (val && typeof val === 'object' && typeof val.amount === 'number') return val.amount;
     return 0;
   };
 
-  // Helper function to get part stock safely
-  const getPartStock = (part: Part | undefined) => {
+  const getPartPrice = (part?: Part): number => {
     if (!part) return 0;
-    
-    // Branch-specific service fee (can be number or {amount})
-    if (typeof part.branch_serviceFee === 'number') return part.branch_serviceFee;
-    if (typeof part.branch_serviceFee === 'object' && part.branch_serviceFee?.amount) return part.branch_serviceFee.amount;
+    return extractAmount(part.branch_price) || extractAmount(part.price);
+  };
 
-    // General service fee
-    if (typeof part.serviceFee === 'number') return part.serviceFee as unknown as number;
-    if (typeof part.serviceFee === 'object' && part.serviceFee?.amount) return part.serviceFee.amount;
-    return 0;
+  const getPartStock = (part?: Part): number => {
+    if (!part) return 0;
+    return extractAmount(part.branch_serviceFee) || extractAmount(part.serviceFee);
   };
 
   const getLanguageFlag = (lang: string) => {
@@ -547,7 +539,7 @@ export function CreateOrder() {
     try {
       if (currentStep === 2 && showNewCustomerForm) {
         // Handle new customer creation
-        const result = await handleNewCustomer(data);
+        const result = await handleNewCustomer(data as unknown as NewCustomerForm);
         if (!result) return; // Error already handled in handleNewCustomer
 
         const { newCustomer, allFormValues } = result;
@@ -944,7 +936,7 @@ export function CreateOrder() {
             action: () => (
               <Button
                 color="inherit"
-                size="small"
+                size="sm"
                 onClick={() => {
                   window.location.href = '/login';
                 }}
@@ -975,8 +967,12 @@ export function CreateOrder() {
         setValue('loanedDevice', {
           ...watch('loanedDevice'),
           deviceType: selectedDeviceType._id,
-          deviceTypeName: selectedDeviceType.name
-        });
+          deviceTypeName: selectedDeviceType.name,
+          deviceBrand: watch('loanedDevice')?.deviceBrand || '',
+          deviceModel: watch('loanedDevice')?.deviceModel || '',
+          brandName: watch('loanedDevice')?.brandName || '',
+          modelName: watch('loanedDevice')?.modelName || ''
+        } as any);
       }
     } else {
       // In other steps, update device type and reset related fields
@@ -997,8 +993,12 @@ export function CreateOrder() {
         setValue('loanedDevice', {
           ...watch('loanedDevice'),
           deviceBrand: selectedBrand._id,
-          brandName: selectedBrand.name
-        });
+          brandName: selectedBrand.name,
+          deviceType: watch('loanedDevice')?.deviceType || '',
+          deviceModel: watch('loanedDevice')?.deviceModel || '',
+          deviceTypeName: watch('loanedDevice')?.deviceTypeName || '',
+          modelName: watch('loanedDevice')?.modelName || ''
+        } as any);
       }
     } else {
       // In other steps, update brand and reset model
@@ -1013,6 +1013,8 @@ export function CreateOrder() {
     if (isStep3) {
       // In step 3, only update loaned device info
       const selectedModel = models.find(m => m._id === value);
+      const selectedBrand = brands.find(b => b._id === watch('loanedDevice')?.deviceBrand);
+      const selectedDeviceType = deviceTypes.find(dt => dt._id === watch('loanedDevice')?.deviceType);
       if (selectedModel) {
         setValue('loanedDevice', {
           ...watch('loanedDevice'),
@@ -1022,8 +1024,10 @@ export function CreateOrder() {
             : (selectedModel.name as { tr?: string; en?: string; de?: string }).tr || 
               (selectedModel.name as { tr?: string; en?: string; de?: string }).en || 
               (selectedModel.name as { tr?: string; en?: string; de?: string }).de || 
-              'İsimsiz Model'
-        });
+              'İsimsiz Model',
+          brandName: selectedBrand?.name || '',
+          deviceTypeName: selectedDeviceType?.name || '',
+        } as any);
       }
     } else {
       // In other steps, update model and loaned device info
@@ -1045,7 +1049,7 @@ export function CreateOrder() {
               'İsimsiz Model',
           brandName: selectedBrand.name,
           deviceTypeName: selectedDeviceType.name
-        });
+        } as any);
         // Parçaları sıfırlamıyoruz
       }
     }
@@ -1945,7 +1949,7 @@ export function CreateOrder() {
                                   <div className="space-y-1">
                                     <div className="flex items-center space-x-2">
                                       <span className="font-medium">{customer.name}</span>
-                                      <span className="text-slate-500">{getLanguageFlag(customer.preferredLanguage)}</span>
+                                      <span className="text-slate-500">{getLanguageFlag(customer.preferredLanguage || '')}</span>
                                     </div>
                                     <div className="flex items-center space-x-4 text-sm text-slate-500">
                                       <span className="flex items-center">
@@ -2063,11 +2067,7 @@ export function CreateOrder() {
                               className="bg-blue-600 hover:bg-blue-700 text-white"
                               onClick={async (e) => {
                                 e.preventDefault();
-                                const formData = await handleNewCustomerSubmit(handleNewCustomer)();
-                                if (formData) {
-                                  // Form data is valid, handleNewCustomer will be called
-                                  console.log('Form submitted successfully');
-                                }
+                                await handleNewCustomerSubmit(handleNewCustomer)();
                               }}
                             >
                               {newCustomerLoading ? 'Kaydediliyor...' : 'İleri'}
@@ -2514,12 +2514,15 @@ export function CreateOrder() {
                           // Order successfully created
                           if (response?.order?._id) {
                             // Persist order details under the related customer as well
-                            await addOrderToCustomer(selectedCustomer?._id as string, {
-                              orderId: response.order._id,
-                              orderNumber: response.order.orderNumber,
-                              barcode: response.order.barcode,
-                              orderDetails: orderData
-                            });
+                            const customerIdSafe = selectedCustomer?._id;
+                            if (response?.order?._id && customerIdSafe) {
+                              await addOrderToCustomer(customerIdSafe as string, {
+                                orderId: response.order._id,
+                                orderNumber: response.order.orderNumber,
+                                barcode: response.order.barcode,
+                                orderDetails: orderData
+                              });
+                            }
                           }
 
                           if (response.success) {

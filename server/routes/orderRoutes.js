@@ -5,6 +5,7 @@ const Product = require('../models/Product');
 const { auth } = require('./middleware/auth');
 const mongoose = require('mongoose');
 const router = express.Router();
+const Repair = require('../models/Repair');
 
 // Get all orders (with branch filtering for branch staff)
 router.get('/', auth, async (req, res) => {
@@ -413,6 +414,37 @@ router.put('/:id/status', auth, async (req, res) => {
     }
 
     await order.save();
+
+    // If status is delivered, insert a copy into Repair collection
+    if (status === 'delivered') {
+      const orderObj = order.toObject();
+      delete orderObj._id;
+      orderObj.originalOrderId = order._id;
+
+      // Branch snapshot ekle
+      if (order.branchSnapshot) {
+        orderObj.branchSnapshot = order.branchSnapshot;
+      } else if (order.branch && order.branch.name) {
+        orderObj.branchSnapshot = {
+          _id: order.branch._id,
+          name: order.branch.name
+        };
+      }
+
+      // branch ve customerId ObjectId olarak kalsın
+      if (orderObj.branch && orderObj.branch._id) {
+        orderObj.branch = orderObj.branch._id;
+      }
+      if (orderObj.customerId && orderObj.customerId._id) {
+        orderObj.customerId = orderObj.customerId._id;
+      }
+
+      try {
+        await Repair.create(orderObj);
+      } catch (err) {
+        console.error('Failed to insert into Repair collection:', err);
+      }
+    }
 
     res.json({
       success: true,
