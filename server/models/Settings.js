@@ -24,6 +24,10 @@ const settingsSchema = new mongoose.Schema({
     defaultUserRole: { type: String, enum: ['technician', 'staff', 'manager'], default: 'technician' },
     requireEmailVerification: { type: Boolean, default: true },
   },
+  sidebarVisibility: {
+    type: Object,
+    default: {}
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

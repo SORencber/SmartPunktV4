@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { Settings as SettingsIcon, Bell, Globe, Shield, CreditCard, Users } from 'lucide-react'
 import { PageContainer } from '@/components/PageContainer'
 import { useTranslation } from 'react-i18next';
+import { navigation } from '@/components/Sidebar';
 
 export function Settings() {
   const { enqueueSnackbar } = useSnackbar();
@@ -320,6 +321,55 @@ export function Settings() {
                   <Switch checked={settings.userManagement.requireEmailVerification} onCheckedChange={v => handleNestedChange('userManagement', 'requireEmailVerification', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Sidebar Visibility */}
+          <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>{t('settings.sidebarVisibility', 'Sidebar Visibility')}</span>
+              </CardTitle>
+              <CardDescription>{t('settings.sidebarVisibilityDesc', 'Control which pages are visible in the sidebar for admins.')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {navigation.map((item, idx) => {
+                if ('items' in item) {
+                  return (
+                    <div key={item.title} className="mb-2">
+                      <div className="font-semibold text-sm mb-1">{t(`sidebar.${item.title}`)}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {item.items.map(subItem => (
+                          <div key={subItem.href} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded">
+                            <div className="flex items-center gap-2">
+                              <subItem.icon className="w-4 h-4" />
+                              <span>{t(`sidebar.${subItem.title}`)}</span>
+                            </div>
+                            <Switch
+                              checked={settings.sidebarVisibility?.[subItem.href] !== false}
+                              onCheckedChange={v => handleChange('sidebarVisibility', { ...settings.sidebarVisibility, [subItem.href]: v })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                } else {
+                  return (
+                    <div key={item.href} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-700/50 rounded">
+                      <div className="flex items-center gap-2">
+                        <item.icon className="w-4 h-4" />
+                        <span>{t(`sidebar.${item.title}`)}</span>
+                      </div>
+                      <Switch
+                        checked={settings.sidebarVisibility?.[item.href] !== false}
+                        onCheckedChange={v => handleChange('sidebarVisibility', { ...settings.sidebarVisibility, [item.href]: v })}
+                      />
+                    </div>
+                  )
+                }
+              })}
             </CardContent>
           </Card>
 

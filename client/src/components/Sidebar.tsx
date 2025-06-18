@@ -34,7 +34,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const navigation: (NavItem | NavGroup)[] = [
+export const navigation: (NavItem | NavGroup)[] = [
   { title: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "customers", href: "/customers", icon: Users },
   { title: "orders", href: "/orders", icon: ShoppingCart },
@@ -83,8 +83,12 @@ export function Sidebar() {
   // Business name state
   const [businessName, setBusinessName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [sidebarVisibility, setSidebarVisibility] = useState<Record<string, boolean>>({});
   useEffect(() => {
-    getSettings().then(s => setBusinessName(s.businessName || 'RepairFlow Pro')).finally(() => setLoading(false));
+    getSettings().then(s => {
+      setBusinessName(s.businessName || 'RepairFlow Pro');
+      setSidebarVisibility(s.sidebarVisibility || {});
+    }).finally(() => setLoading(false));
   }, []);
 
   const isActive = (href: string) => location.pathname === href
@@ -145,6 +149,7 @@ export function Sidebar() {
                   </h4>
                   {item.items.map((subItem) => {
                     if (!canAccess(subItem.roles)) return null
+                    if (sidebarVisibility[subItem.href] === false) return null;
                     const Icon = subItem.icon
                     return (
                       <Button
@@ -165,6 +170,7 @@ export function Sidebar() {
             } else {
               // This is a single item
               if (!canAccess(item.roles)) return null
+              if (sidebarVisibility[item.href] === false) return null;
               const Icon = item.icon
               return (
                 <Button

@@ -24,6 +24,7 @@ export interface Settings {
     defaultUserRole: 'technician' | 'staff' | 'manager';
     requireEmailVerification: boolean;
   };
+  sidebarVisibility?: Record<string, boolean>;
   createdAt?: string;
   updatedAt?: string;
   _id?: string;
