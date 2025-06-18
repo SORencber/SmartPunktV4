@@ -1,6 +1,7 @@
 const express = require('express');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
+const Repair = require('../models/Repair');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
 
@@ -48,12 +49,26 @@ router.get('/stats', protect, async (req, res) => {
       completedAt: { $gte: today }
     });
 
+    // Get orders delivered today
+    const deliveredToday = await Order.countDocuments({
+      ...matchConditions,
+      status: 'delivered',
+      updatedAt: { $gte: today }
+    });
+
+    // --- Repairs stats ---
+    const totalRepairs = await Repair.countDocuments({ ...matchConditions });
+    const pendingRepairs = await Repair.countDocuments({ ...matchConditions, status: 'pending' });
+
     const stats = {
       totalOrders: orderStats[0]?.totalOrders || 0,
       totalRevenue: orderStats[0]?.totalRevenue || 0,
       activeCustomers,
       pendingOrders,
-      completedToday
+      completedToday,
+      totalRepairs,
+      pendingRepairs,
+      deliveredToday
     };
 
     res.json({

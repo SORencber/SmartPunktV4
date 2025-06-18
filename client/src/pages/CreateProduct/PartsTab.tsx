@@ -167,6 +167,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [filteredModels, setFilteredModels] = useState<any[]>([]);
+  const { t } = useTranslation();
 
   // Bildirim gösterme yardımcı fonksiyonu
   const showNotification = useCallback((message: string, variant: VariantType = 'success') => {
@@ -1637,14 +1638,12 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                 />
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Açıklamalar
-                </Typography>
+                <Typography variant="subtitle1" gutterBottom>{t('parts.descriptions')}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Açıklama (TR)"
+                  label={t('parts.descriptionTr')}
                   value={formData.description.tr}
                   onChange={(e) => handleFormChange('description', { ...formData.description, tr: e.target.value })}
                   multiline
@@ -1654,7 +1653,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Açıklama (DE)"
+                  label={t('parts.descriptionDe')}
                   value={formData.description.de}
                   onChange={(e) => handleFormChange('description', { ...formData.description, de: e.target.value })}
                   multiline
@@ -1664,7 +1663,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Açıklama (EN)"
+                  label={t('parts.descriptionEn')}
                   value={formData.description.en}
                   onChange={(e) => handleFormChange('description', { ...formData.description, en: e.target.value })}
                   multiline
@@ -1672,21 +1671,20 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
                 />
               </Grid>
             </Grid>
-
-        <DialogActions>
+            <DialogActions>
               <Button onClick={handleCloseDialog}>
-                İptal
+                {t('common.cancel')}
               </Button>
-          <Button 
+              <Button 
                 type="submit" 
-            variant="contained" 
+                variant="contained" 
                 color="primary"
-            disabled={loading}
+                disabled={loading}
                 startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
-          >
-                {loading ? 'Kaydediliyor...' : (isEditing ? 'Değişiklikleri Kaydet' : 'Kaydet')}
-          </Button>
-        </DialogActions>
+              >
+                {loading ? t('common.saving') : (isEditing ? t('common.saveChanges') : t('common.save'))}
+              </Button>
+            </DialogActions>
           </form>
         </DialogContent>
       </Dialog>

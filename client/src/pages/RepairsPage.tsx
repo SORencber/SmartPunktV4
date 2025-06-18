@@ -37,6 +37,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { getDeviceTypes, DeviceType } from '@/api/deviceTypes';
 import type { Repair } from '@/api/repairs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useTranslation } from 'react-i18next';
+import { PageContainer } from '@/components/PageContainer';
+import { Table, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const getDisplayName = (val:any) => {
   if (!val) return '';
@@ -109,15 +112,65 @@ export default function RepairsPage() {
   const [messageSending, setMessageSending] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [showQrInMessageDialog, setShowQrInMessageDialog] = useState(false);
+  const { t } = useTranslation();
 
   const whatsappSessionUser = user?.username || user?.email || 'default';
 
+  // 1. Tüm veriler: repairs
+  // 2. Arama ve filtreleme
+  const filteredRepairs = repairs.filter(repair => {
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) return true;
+
+    let createdAtStr = '';
+    try {
+      createdAtStr = repair.createdAt ? formatDate(repair.createdAt).toLowerCase() : '';
+    } catch {
+      createdAtStr = '';
+    }
+
+    return (
+      (repair.orderNumber && repair.orderNumber.toLowerCase().includes(search)) ||
+      (repair.orderId && repair.orderId.toLowerCase().includes(search)) ||
+      (repair.customerId?.name && repair.customerId.name.toLowerCase().includes(search)) ||
+      (repair.customerId?.phone && repair.customerId.phone.toLowerCase().includes(search)) ||
+      (repair.branch?.name && repair.branch.name.toLowerCase().includes(search)) ||
+      (repair.device?.brand && repair.device.brand.toLowerCase().includes(search)) ||
+      (repair.device?.model && repair.device.model.toLowerCase().includes(search)) ||
+      (repair.items && repair.items.some(item =>
+        (getDisplayNameDe(item.name).toLowerCase().includes(search)) ||
+        (item.quantity !== undefined && String(item.quantity).toLowerCase().includes(search))
+      )) ||
+      (repair.status && t(`orders.status.${repair.status}`).toLowerCase().includes(search)) ||
+      (createdAtStr && createdAtStr.includes(search)) ||
+      (repair.payment?.amount !== undefined && String(repair.payment.amount).toLowerCase().includes(search)) ||
+      (repair.payment?.totalAmount !== undefined && String(repair.payment.totalAmount).toLowerCase().includes(search))
+    );
+  });
+
+  // 3. Sayfalama
+  const pagedRepairs = filteredRepairs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // 4. Tablo sadece pagedRepairs ile render edilir
+  // 5. Arama, filtre veya pageSize değiştiğinde currentPage = 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, branchFilter, pageSize]);
+
+  // 6. Toplam sayfa sayısı güncelle
+  useEffect(() => {
+    setTotalPages(Math.max(1, Math.ceil(filteredRepairs.length / pageSize)));
+    if ((currentPage - 1) * pageSize >= filteredRepairs.length && currentPage > 1) {
+      setCurrentPage(1);
+    }
+  }, [filteredRepairs, pageSize]);
+
+  // API'den verileri sadece bir defa veya filtre değişince çek
   const loadRepairs = async () => {
     try {
       setLoading(true);
-      const response = await getRepairs({ search: searchTerm, status: statusFilter, branch: branchFilter, page: currentPage, limit: pageSize });
+      const response = await getRepairs({ status: statusFilter, branch: branchFilter, limit: 10000 });
       setRepairs(response.repairs);
-      setTotalPages(response.totalPages || 1);
     } catch (error) {
       console.error('Failed to load repairs:', error);
       enqueueSnackbar('Failed to load repairs', { variant: 'error' });
@@ -125,6 +178,10 @@ export default function RepairsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadRepairs();
+  }, [statusFilter, branchFilter]);
 
   const handleCancelClick = (repairId: string) => {
     setRepairToCancel(repairId);
@@ -157,10 +214,6 @@ export default function RepairsPage() {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
   };
-
-  useEffect(() => {
-    loadRepairs();
-  }, [searchTerm, statusFilter, branchFilter, currentPage, pageSize]);
 
   useEffect(() => {
     const fetchBranches = async () => {
@@ -234,9 +287,6 @@ export default function RepairsPage() {
     );
   }
 
-  const shippedRepairs = repairs.filter(repair => repair.status === 'shipped');
-  const nonShippedRepairs = repairs.filter(repair => repair.status !== 'shipped');
-
   const handleSendMessage = async () => {
     if (!messageRepair) return;
     setMessageSending(true);
@@ -248,7 +298,7 @@ export default function RepairsPage() {
           setQrCode(res.data.qr);
           setShowQrInMessageDialog(true);
           setMessageSending(false);
-          enqueueSnackbar('WhatsApp bağlantısı için önce QR kodunu tarayın.', { variant: 'info' });
+          enqueueSnackbar(t('repairs.form.whatsappQrInfo'), { variant: 'info' });
           return; // QR kodu varsa mesajı göndermeden çık
         }
       }
@@ -272,34 +322,34 @@ export default function RepairsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageContainer title={t('repairs.title')} description={t('repairs.description')}>
       {/* WhatsApp QR Code Dialog - always present at root */}
       <Dialog open={!!qrCode} onOpenChange={() => setQrCode(null)}>
         <DialogContent className="max-w-md flex flex-col items-center">
           <DialogHeader>
-            <DialogTitle>WhatsApp Bağlantısı</DialogTitle>
+            <DialogTitle>{t('repairs.whatsappTitle')}</DialogTitle>
           </DialogHeader>
-          <div className="mb-2">Lütfen aşağıdaki QR kodunu WhatsApp uygulamanızdan tarayın.</div>
+          <div className="mb-2">{t('repairs.whatsappDesc')}</div>
           {qrCode && (
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrCode)}&size=200x200`}
-              alt="WhatsApp QR Code"
+              alt={t('repairs.whatsappQrAlt')}
               style={{ border: '1px solid #ccc', background: '#fff', padding: 8 }}
             />
           )}
-          <div className="text-xs text-gray-500 mt-2">Taradıktan sonra pencereyi kapatabilirsiniz.</div>
+          <div className="text-xs text-gray-500 mt-2">{t('repairs.whatsappHint')}</div>
         </DialogContent>
       </Dialog>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          Tamirler
+          {t('repairs.title')}
         </h1>
         <Button
           onClick={() => navigate('/repairs/create')}
           className="w-full sm:w-auto bg-white text-blue-700 border border-blue-600 hover:bg-blue-50 shadow font-semibold"
         >
           <Plus className="h-4 w-4 mr-2 text-blue-700" />
-          Yeni Sipariş Oluştur
+          {t('repairs.create')}
         </Button>
       </div>
 
@@ -307,7 +357,7 @@ export default function RepairsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
           <Input
-            placeholder="Tamirleri arama..."
+            placeholder={t('repairs.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -316,13 +366,13 @@ export default function RepairsPage() {
         <div className="w-full sm:w-40">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Durum filtresi" />
+              <SelectValue placeholder={t('repairs.statusFilterPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tüm Durumlar</SelectItem>
-              <SelectItem value="delivered">Kargo Alındı</SelectItem>
-              <SelectItem value="completed">Tamamlandı</SelectItem>
-              <SelectItem value="cancelled">İptal</SelectItem>
+              <SelectItem value="all">{t('repairs.allStatuses')}</SelectItem>
+              <SelectItem value="delivered">{t('repairs.status.delivered')}</SelectItem>
+              <SelectItem value="completed">{t('repairs.status.completed')}</SelectItem>
+              <SelectItem value="cancelled">{t('repairs.status.cancelled')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -330,10 +380,10 @@ export default function RepairsPage() {
           <div className="w-full sm:w-48">
             <Select value={branchFilter} onValueChange={setBranchFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="Şube filtresi" />
+                <SelectValue placeholder={t('repairs.branchFilterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tüm Şubeler</SelectItem>
+                <SelectItem value="all">{t('repairs.allBranches')}</SelectItem>
                 {branches.map(b => {
                   const branchId = typeof (b as any)._id === 'string' ? (b as any)._id : ((b as any)._id && typeof (b as any)._id === 'object' && 'oid' in (b as any)._id ? (b as any)._id.oid : b.name);
                   return (
@@ -345,7 +395,7 @@ export default function RepairsPage() {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <span>Sayfa başına:</span>
+          <span>{t('repairs.pagePerPage')}</span>
           <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
             <SelectTrigger className="w-20">
               <SelectValue />
@@ -361,35 +411,35 @@ export default function RepairsPage() {
 
       {/* Toplam sipariş sayısı */}
       <div className="text-sm text-slate-500">
-        Toplam {repairs.length + shippedRepairs.length} tamir var
+        {t('repairs.totalRepairs', { total: repairs.length })}
       </div>
 
       {/* Kargoda Olan Tamirler Tablosu */}
-      {shippedRepairs.length > 0 && (
+      {pagedRepairs.length > 0 && (
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader>
-            <CardTitle>Biten Tamirler</CardTitle>
-            <CardDescription>Bitmis Tamirler burada listelenir</CardDescription>
+            <CardTitle>{t('repairs.shippedRepairsTitle')}</CardTitle>
+            <CardDescription>{t('repairs.shippedRepairsDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm border rounded-xl bg-white dark:bg-slate-800">
                 <thead>
                   <tr className="bg-orange-100 dark:bg-orange-900">
-                    <th className="px-3 py-2 text-left">Sipariş Tarihi</th>
-                    <th className="px-3 py-2 text-left">Sipariş No</th>
-                    <th className="px-3 py-2 text-left">Şube</th>
-                    <th className="px-3 py-2 text-left">Marka</th>
-                    <th className="px-3 py-2 text-left">Model</th>
-                    <th className="px-3 py-2 text-left">Parça (Adet)</th>
-                    <th className="px-3 py-2 text-left">Dış Teknik Servis</th>
-                    <th className="px-3 py-2 text-left">Durum</th>
-                    <th className="px-3 py-2 text-left">Tutar</th>
-                    <th className="px-3 py-2 text-left">İşlemler</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.createdAt')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.orderNo')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.branch')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.brand')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.model')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.parts')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.centralService')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.status')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.amount')}</th>
+                    <th className="px-3 py-2 text-left">{t('repairs.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shippedRepairs.map(repair => {
+                  {pagedRepairs.map(repair => {
                     // Brand lookup: try device.brandId, then device.brand, then model's brandId
                     let brandObj = null;
                     if (repair.device.brandId) {
@@ -431,49 +481,24 @@ export default function RepairsPage() {
                               ))
                             : '-'}
                         </td>
-                        <td className="px-3 py-2">{repair.isCentralService ? 'Evet' : 'Hayır'}</td>
+                        <td className="px-3 py-2">{repair.isCentralService ? t('common.yes') : t('common.no')}</td>
                         <td className="px-3 py-2">
-                          <Select
-                            value={repair.status}
-                            disabled={!!statusUpdating[repair._id]}
-                            onValueChange={async (newStatus) => {
-                              setStatusUpdating((prev) => ({ ...prev, [repair._id]: true }));
-                              try {
-                                await updateRepairStatus(repair._id, { status: newStatus });
-                                setRepairs(prevRepairs =>
-                                  prevRepairs.map(r =>
-                                    r._id === repair._id ? { ...r, status: newStatus } : r
-                                  )
-                                );
-                              } finally {
-                                setStatusUpdating((prev) => ({ ...prev, [repair._id]: false }));
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="delivered">Kargo Alındı</SelectItem>
-                              <SelectItem value="completed">Tamamlandı</SelectItem>
-                              <SelectItem value="cancelled">İptal</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          {t(`repairs.status.${repair.status}`)}
                         </td>
                         <td className="px-3 py-2">
                           {repair.totalCentralPayment ? `${formatCurrency(repair.totalCentralPayment)}` : '-'}
                         </td>
                         <td className="px-3 py-2 flex gap-2 items-center">
-                          <Button size="icon" variant="outline" title="Göster" onClick={() => navigate(`/repairs/${repair._id}`)}>
+                          <Button size="icon" variant="outline" title={t('repairs.view')} onClick={() => navigate(`/repairs/${repair._id}`)}>
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="destructive" title="Sil" onClick={() => setRepairToDelete(repair)} disabled={deleting}>
+                          <Button size="icon" variant="destructive" title={t('repairs.delete')} onClick={() => setRepairToDelete(repair)} disabled={deleting}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="outline" title="Yazdır" onClick={() => setPrintRepair(repair)}>
+                          <Button size="icon" variant="outline" title={t('repairs.print')} onClick={() => setPrintRepair(repair)}>
                             <Printer className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="outline" title="Mesaj Gönder" onClick={() => { setMessageRepair(repair); setMessageDialogOpen(true); }}>
+                          <Button size="icon" variant="outline" title={t('repairs.sendMessage')} onClick={() => { setMessageRepair(repair); setMessageDialogOpen(true); }}>
                             <Mail className="w-4 h-4" />
                           </Button>
                         </td>
@@ -487,155 +512,24 @@ export default function RepairsPage() {
         </Card>
       )}
 
-      {/* Ana Tamirler Tablosu (Kargoda olmayanlar) */}
-      <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
-        <CardHeader>
-          <CardTitle>Tüm Tamirler</CardTitle>
-          <CardDescription>Tamirleri yönetin ve izleyin</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {nonShippedRepairs.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-slate-600 dark:text-slate-400">Sipariş bulunamadı</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm border rounded-xl bg-white dark:bg-slate-800">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-700">
-                    <th className="px-3 py-2 text-left cursor-pointer select-none" onClick={() => setRepairSortDirection(d => d === 'asc' ? 'desc' : 'asc')}>
-                      Sipariş Tarihi {repairSortDirection === 'asc' ? '▲' : '▼'}
-                    </th>
-                    <th className="px-3 py-2 text-left">Sipariş No</th>
-                    <th className="px-3 py-2 text-left">Şube</th>
-                    <th className="px-3 py-2 text-left">Marka</th>
-                    <th className="px-3 py-2 text-left">Model</th>
-                    <th className="px-3 py-2 text-left">Parça (Adet)</th>
-                    <th className="px-3 py-2 text-left">Dış Teknik Servis</th>
-                    <th className="px-3 py-2 text-left">Durum</th>
-                    <th className="px-3 py-2 text-left">Tutar</th>
-                    <th className="px-3 py-2 text-left">İşlemler</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {nonShippedRepairs.map(repair => {
-                    // Brand lookup: try device.brandId, then device.brand, then model's brandId
-                    let brandObj = null;
-                    if (repair.device.brandId) {
-                      brandObj = brands.find(b => b._id === repair.device.brandId);
-                    }
-                    if (!brandObj && repair.device.brand) {
-                      brandObj = brands.find(b => b._id === repair.device.brand || b.name === repair.device.brand);
-                    }
-                    // If still not found, try model's brandId
-                    let modelObj = null;
-                    if (repair.device.modelId) {
-                      modelObj = models.find(m => m._id === repair.device.modelId || m.name === repair.device.modelId);
-                    }
-                    if (!modelObj && repair.device.model) {
-                      modelObj = models.find(m => m._id === repair.device.model || m.name === repair.device.model);
-                    }
-                    if (!brandObj && modelObj && modelObj.brandId) {
-                      brandObj = brands.find(b => b._id === modelObj.brandId);
-                    }
-
-                    return (
-                      <tr key={repair._id} className={getRowBgClass(repair.status)}>
-                        <td className="px-3 py-2">{formatDate(repair.createdAt)}</td>
-                        <td className="px-3 py-2">{repair.orderId}</td>
-                        <td className="px-3 py-2">
-                          <p className="font-medium text-black">
-                            {repair.branchSnapshot?.name || '-'}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2">
-                          <BrandIcon brand={brandObj || { name: '-' }} size={24} />
-                          <span>{brandObj?.name || '-'}</span>
-                        </td>
-                        <td className="px-3 py-2">{modelObj?.name || '-'}</td>
-                        <td className="px-3 py-2">
-                          {repair.items && repair.items.length > 0
-                            ? repair.items.map((item, idx) => (
-                                <span key={idx} className="block">{getDisplayNameDe(item.name)} x {item.quantity}</span>
-                              ))
-                            : '-'}
-                        </td>
-                        <td className="px-3 py-2">{repair.isCentralService ? 'Evet' : 'Hayır'}</td>
-                        <td className="px-3 py-2">
-                          <Select
-                            value={repair.status}
-                            disabled={!!statusUpdating[repair._id]}
-                            onValueChange={async (newStatus) => {
-                              setStatusUpdating((prev) => ({ ...prev, [repair._id]: true }));
-                              try {
-                                await updateRepairStatus(repair._id, { status: newStatus });
-                                setRepairs(prevRepairs =>
-                                  prevRepairs.map(r =>
-                                    r._id === repair._id ? { ...r, status: newStatus } : r
-                                  )
-                                );
-                              } finally {
-                                setStatusUpdating((prev) => ({ ...prev, [repair._id]: false }));
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="delivered">Kargo Alındı</SelectItem>
-                              <SelectItem value="completed">Tamamlandı</SelectItem>
-                              <SelectItem value="cancelled">İptal</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-3 py-2">
-                          {repair.totalCentralPayment ? `${formatCurrency(repair.totalCentralPayment)}` : '-'}
-                        </td>
-                        <td className="px-3 py-2 flex gap-2 items-center">
-                          <Button size="icon" variant="outline" title="Göster" onClick={() => navigate(`/repairs/${repair._id}`)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button size="icon" variant="destructive" title="Sil" onClick={() => setRepairToDelete(repair)} disabled={deleting}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                          {repair.status === 'shipped' && (
-                            <Button size="icon" variant="outline" title="Yazdır" onClick={() => setPrintRepair(repair)}>
-                              <Printer className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button size="icon" variant="outline" title="Mesaj Gönder" onClick={() => { setMessageRepair(repair); setMessageDialogOpen(true); }}>
-                            <Mail className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="flex items-center justify-between mt-4">
-        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p-1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">Önceki</button>
-        <span>Sayfa {currentPage} / {totalPages}</span>
-        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p+1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">Sonraki</button>
+        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p-1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">{t('common.previous')}</button>
+        <span>{t('repairs.page', { current: currentPage, total: totalPages })}</span>
+        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p+1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">{t('common.next')}</button>
       </div>
 
       <AlertDialog open={!!repairToCancel} onOpenChange={() => setRepairToCancel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sipariş İptal</AlertDialogTitle>
+            <AlertDialogTitle>{t('repairs.cancelRepairTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu siparişi iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              {t('repairs.cancelRepairDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelConfirm} className="bg-red-600 hover:bg-red-700">
-              Evet, Sipariş İptal
+              {t('repairs.confirmCancel')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -644,16 +538,16 @@ export default function RepairsPage() {
       <AlertDialog open={!!repairToDelete} onOpenChange={() => setRepairToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Siparişi Sil</AlertDialogTitle>
+            <AlertDialogTitle>{t('repairs.deleteRepairTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu siparişi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              {t('repairs.deleteRepairDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleDeleteRepair} disabled={deleting} className="bg-red-600 hover:bg-red-700">
-              {deleting ? 'Siliniyor...' : 'Evet, Sil'}
+              {deleting ? t('repairs.deleting') : t('repairs.confirmDelete')}
             </AlertDialogAction>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -665,13 +559,13 @@ export default function RepairsPage() {
             <>
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <div className="font-bold text-lg">Sipariş No</div>
+                  <div className="font-bold text-lg">{t('repairs.form.orderNo')}</div>
                   <div className="text-xl">{printRepair.orderId}</div>
                 </div>
                 <QRCodeSVG value={printRepair.orderId} size={64} />
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Cihaz Tipi:</span> {(() => {
+                <span className="font-semibold">{t('repairs.form.deviceType')}:</span> {(() => {
                   const device = printRepair.device || {};
                   let deviceTypeName = '-';
                   if (device.deviceType) {
@@ -701,7 +595,7 @@ export default function RepairsPage() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Marka:</span> {(() => {
+                <span className="font-semibold">{t('repairs.form.brand')}:</span> {(() => {
                   const device = printRepair.device || {};
                   let brandName = '-';
                   if (device.brandId) {
@@ -713,7 +607,7 @@ export default function RepairsPage() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Model:</span> {(() => {
+                <span className="font-semibold">{t('repairs.form.model')}:</span> {(() => {
                   const device = printRepair.device || {};
                   let modelName = '-';
                   if (device.modelId) {
@@ -725,7 +619,7 @@ export default function RepairsPage() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Parçalar:</span>
+                <span className="font-semibold">{t('repairs.form.parts')}:</span>
                 <ul className="list-disc ml-6">
                   {printRepair?.items && printRepair.items.length > 0 ? (
                     printRepair.items.map((item, idx) => (
@@ -744,14 +638,14 @@ export default function RepairsPage() {
       <Dialog open={!!printRepair} onOpenChange={() => setPrintRepair(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Sipariş Yazdır</DialogTitle>
+            <DialogTitle>{t('repairs.printTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Preview only, not for printing */}
             <div className="bg-white p-4 rounded shadow">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <div className="font-bold text-lg">Sipariş No</div>
+                  <div className="font-bold text-lg">{t('repairs.form.orderNo')}</div>
                   <div className="text-xl">{printRepair?.orderId}</div>
                 </div>
                 {printRepair && (
@@ -759,7 +653,7 @@ export default function RepairsPage() {
                 )}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Cihaz Tipi:</span> {(() => {
+                <span className="font-semibold">{t('repairs.form.deviceType')}:</span> {(() => {
                   if (!printRepair) return '-';
                   const device = printRepair.device || {};
                   let deviceTypeName = '-';
@@ -790,7 +684,7 @@ export default function RepairsPage() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Marka:</span> {(() => {
+                <span className="font-semibold">{t('repairs.form.brand')}:</span> {(() => {
                   if (!printRepair) return '-';
                   const device = printRepair.device || {};
                   let brandName = '-';
@@ -803,7 +697,7 @@ export default function RepairsPage() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Model:</span> {(() => {
+                <span className="font-semibold">{t('repairs.form.model')}:</span> {(() => {
                   if (!printRepair) return '-';
                   const device = printRepair.device || {};
                   let modelName = '-';
@@ -816,7 +710,7 @@ export default function RepairsPage() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Parçalar:</span>
+                <span className="font-semibold">{t('repairs.form.parts')}:</span>
                 <ul className="list-disc ml-6">
                   {printRepair?.items && printRepair.items.length > 0 ? (
                     printRepair.items.map((item, idx) => (
@@ -829,7 +723,7 @@ export default function RepairsPage() {
               </div>
             </div>
             <Button onClick={() => printRepair && handlePrint()} className="w-full" variant="outline" disabled={!printRepair}>
-              <Printer className="w-4 h-4 mr-2" /> Yazıcıya Gönder
+              <Printer className="w-4 h-4 mr-2" /> {t('repairs.printButton')}
             </Button>
           </div>
         </DialogContent>
@@ -839,14 +733,14 @@ export default function RepairsPage() {
       <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Mesaj Gönder</DialogTitle>
+            <DialogTitle>{t('repairs.sendMessageTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex gap-4 items-center">
               <Checkbox id="email" checked={messageChannels.email} onCheckedChange={v => setMessageChannels(ch => ({ ...ch, email: !!v }))} />
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t('repairs.form.email')}</label>
               <Checkbox id="sms" checked={messageChannels.sms} onCheckedChange={v => setMessageChannels(ch => ({ ...ch, sms: !!v }))} />
-              <label htmlFor="sms">SMS</label>
+              <label htmlFor="sms">{t('repairs.form.sms')}</label>
               <Checkbox id="whatsapp" checked={messageChannels.whatsapp} onCheckedChange={async v => {
                 setMessageChannels(ch => ({ ...ch, whatsapp: !!v }));
                 if (v) {
@@ -854,7 +748,7 @@ export default function RepairsPage() {
                   if (res.data?.success && res.data.qr) {
                     setQrCode(res.data.qr);
                     setShowQrInMessageDialog(true);
-                    enqueueSnackbar('WhatsApp bağlantısı için önce QR kodunu tarayın.', { variant: 'info' });
+                    enqueueSnackbar(t('repairs.form.whatsappQrInfo'), { variant: 'info' });
                   } else {
                     setShowQrInMessageDialog(false);
                     setQrCode(null);
@@ -867,18 +761,18 @@ export default function RepairsPage() {
               <label htmlFor="whatsapp">WhatsApp</label>
             </div>
             <div>
-              <label className="block mb-1 font-medium">Mesaj (Almanca)</label>
-              <textarea className="w-full border rounded p-2 min-h-[100px]" value={messageText} onChange={e => setMessageText(e.target.value)} />
+              <label className="block mb-1 font-medium">{t('repairs.form.messageLabel')}</label>
+              <textarea className="w-full border rounded p-2 min-h-[100px]" value={messageText} onChange={e => setMessageText(e.target.value)} placeholder={t('repairs.form.messagePlaceholder')} />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setMessageDialogOpen(false)}>İptal</Button>
+              <Button variant="outline" onClick={() => setMessageDialogOpen(false)}>{t('common.cancel')}</Button>
               <Button onClick={handleSendMessage} disabled={messageSending} className="bg-blue-600 text-white">
-                {messageSending ? 'Gönderiliyor...' : 'Gönder'}
+                {messageSending ? t('repairs.form.sending') : t('repairs.form.send')}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

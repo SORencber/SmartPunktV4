@@ -4,7 +4,7 @@ import { handleApiError } from '@/utils/apiErrorHandler';
 // Description: Get dashboard statistics
 // Endpoint: GET /api/dashboard/stats
 // Request: {}
-// Response: { stats: { totalOrders: number, totalRevenue: number, activeCustomers: number, pendingOrders: number, completedToday: number, lowStockItems: number } }
+// Response: { stats: { totalOrders: number, totalRevenue: number, activeCustomers: number, pendingOrders: number, completedToday: number, lowStockItems: number, totalRepairs: number, pendingRepairs: number, deliveredToday: number } }
 export const getDashboardStats = async () => {
   try {
     const response = await api.get('/api/dashboard/stats');

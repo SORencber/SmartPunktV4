@@ -66,6 +66,7 @@ import {
 import { getAllBranches, type Branch as ApiBranch } from '@/api/branches';
 import { PageContainer } from '@/components/PageContainer';
 import { CreateOrder } from './CreateOrder';
+import { useTranslation } from 'react-i18next';
 
 // Types
 interface Customer {
@@ -124,6 +125,7 @@ const Customers: React.FC = () => {
   const { branch } = useBranch();
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // States
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -485,18 +487,18 @@ const Customers: React.FC = () => {
   }
 
   return (
-    <PageContainer title="Müşteri Yönetimi" description="Müşterilerinizi ve müşteri kayıtlarını yönetin.">
+    <PageContainer title={t('customers.managementTitle')} description={t('customers.managementDesc')}>
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Müşteri Yönetimi</h1>
+            <h1 className="text-2xl font-bold">{t('customers.managementTitle')}</h1>
             <div className="flex flex-col gap-1">
               <p className="text-lg font-semibold text-blue-600">
-                📍 {branch?.name || 'Şube Yükleniyor...'}
+                📍 {branch?.name || t('customers.branchLoading')}
               </p>
               <p className="text-gray-600">
-                Şube Kodu: {branch?.code || 'Yükleniyor...'} • {filteredCustomers.length} müşteri
+                {t('customers.branchCode', { code: branch?.code || t('customers.loading'), count: filteredCustomers.length })}
               </p>
             </div>
           </div>
@@ -515,30 +517,30 @@ const Customers: React.FC = () => {
               ) : (
                 <Search className="h-4 w-4 mr-2" />
               )}
-              Yenile
+              {t('common.refresh')}
             </Button>
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Yeni Müşteri
+                  {t('customers.newCustomer')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-full max-w-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto p-0 sm:p-6 flex flex-col justify-center items-center">
                 <DialogHeader>
-                  <DialogTitle>Yeni Müşteri Ekle</DialogTitle>
+                  <DialogTitle>{t('customers.newCustomerTitle')}</DialogTitle>
                   <DialogDescription>
-                    Yeni bir müşteri kaydı oluşturun. Müşteri otomatik olarak mevcut şubenize ({branch?.name}) atanacaktır.
+                    {t('customers.newCustomerDesc')}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit(onCreateSubmit)} className="space-y-4">
                   <div>
-                    <Label htmlFor="create-name">Ad Soyad *</Label>
+                    <Label htmlFor="create-name">{t('customers.name')} *</Label>
                     <Input
                       id="create-name"
                       {...register('name')}
-                      placeholder="Müşteri adı"
+                      placeholder={t('customers.namePlaceholder')}
                     />
                     {errors.name && (
                       <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
@@ -546,11 +548,11 @@ const Customers: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="create-phone">Telefon *</Label>
+                    <Label htmlFor="create-phone">{t('customers.phone')} *</Label>
                     <Input
                       id="create-phone"
                       {...register('phone')}
-                      placeholder="05xx xxx xx xx"
+                      placeholder={t('customers.phonePlaceholder')}
                     />
                     {errors.phone && (
                       <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
@@ -558,12 +560,12 @@ const Customers: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="create-email">Email</Label>
+                    <Label htmlFor="create-email">{t('customers.email')}</Label>
                     <Input
                       id="create-email"
                       type="email"
                       {...register('email')}
-                      placeholder="ornek@email.com"
+                      placeholder={t('customers.emailPlaceholder')}
                     />
                     {errors.email && (
                       <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
@@ -571,17 +573,17 @@ const Customers: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="create-address">Adres</Label>
+                    <Label htmlFor="create-address">{t('customers.address')}</Label>
                     <Textarea
                       id="create-address"
                       {...register('address')}
-                      placeholder="Müşteri adresi"
+                      placeholder={t('customers.addressPlaceholder')}
                       rows={2}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="create-preferredLanguage">Tercih Edilen Dil</Label>
+                    <Label htmlFor="create-preferredLanguage">{t('customers.preferredLanguage')}</Label>
                     <Select 
                       value={watch('preferredLanguage') || 'TR'} 
                       onValueChange={(value) => setValue('preferredLanguage', value as 'TR' | 'DE' | 'EN')}
@@ -598,11 +600,11 @@ const Customers: React.FC = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="create-notes">Notlar</Label>
+                    <Label htmlFor="create-notes">{t('customers.notes')}</Label>
                     <Textarea
                       id="create-notes"
                       {...register('notes')}
-                      placeholder="Müşteri hakkında notlar"
+                      placeholder={t('customers.notesPlaceholder')}
                       rows={2}
                     />
                   </div>
@@ -616,7 +618,7 @@ const Customers: React.FC = () => {
                         reset();
                       }}
                     >
-                      İptal
+                      {t('common.cancel')}
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? (
@@ -625,7 +627,7 @@ const Customers: React.FC = () => {
                           Oluşturuluyor...
                         </>
                       ) : (
-                        'Oluştur'
+                        t('common.update')
                       )}
                     </Button>
                   </div>
@@ -643,7 +645,7 @@ const Customers: React.FC = () => {
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Müşteri ara (isim, telefon, email)..."
+                    placeholder={t('customers.searchPlaceholder')}
                     className="pl-8"
                     value={searchTerm}
                     onChange={(e) => {
@@ -663,7 +665,7 @@ const Customers: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tüm Şubeler</SelectItem>
+                      <SelectItem value="all">{t('customers.allBranches')}</SelectItem>
                       {branches.map((branch) => (
                         <SelectItem key={branch._id} value={branch._id}>
                           {branch.name}
@@ -680,17 +682,17 @@ const Customers: React.FC = () => {
         {/* Customer List */}
         <Card>
           <CardHeader>
-            <CardTitle>Müşteri Listesi</CardTitle>
+            <CardTitle>{t('customers.listTitle')}</CardTitle>
             <CardDescription>
-              {filteredCustomers.length} müşteri bulundu
+              {t('customers.listDesc', { count: filteredCustomers.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {filteredCustomers.length === 0 ? (
               <div className="text-center p-8 text-gray-500">
                 {searchTerm 
-                  ? 'Arama kriterlerinize uygun müşteri bulunamadı'
-                  : 'Henüz müşteri kaydı bulunmuyor'
+                  ? t('customers.noSearchResults')
+                  : t('customers.noCustomers')
                 }
                 <div className="text-xs text-gray-400 mt-2">
                   Debug: Total customers: {customers.length}, Filtered: {filteredCustomers.length}
@@ -752,7 +754,7 @@ const Customers: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => navigate(`/customers/${customer._id}`)}
-                            title="Müşteri Detayları"
+                            title={t('customers.viewDetails')}
                           >
                             <Eye className="h-4 w-4 text-blue-500" />
                           </Button>
@@ -763,7 +765,7 @@ const Customers: React.FC = () => {
                             onClick={() => {
                               setOrderModalOpen(true);
                             }}
-                            title="Sipariş Ekle"
+                            title={t('customers.addOrder')}
                           >
                             <ShoppingCart className="h-4 w-4 text-green-500" />
                           </Button>
@@ -772,7 +774,7 @@ const Customers: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditDialog(customer)}
-                            title="Düzenle"
+                            title={t('customers.edit')}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -784,7 +786,7 @@ const Customers: React.FC = () => {
                               setSelectedCustomer(customer);
                               setIsDeleteDialogOpen(true);
                             }}
-                            title="Sil"
+                            title={t('customers.delete')}
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
@@ -809,11 +811,11 @@ const Customers: React.FC = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit(onEditSubmit)} className="space-y-4">
               <div>
-                <Label htmlFor="edit-name">Ad Soyad *</Label>
+                <Label htmlFor="edit-name">{t('customers.name')} *</Label>
                 <Input
                   id="edit-name"
                   {...register('name')}
-                  placeholder="Müşteri adı"
+                  placeholder={t('customers.namePlaceholder')}
                 />
                 {errors.name && (
                   <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
@@ -821,11 +823,11 @@ const Customers: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="edit-phone">Telefon *</Label>
+                <Label htmlFor="edit-phone">{t('customers.phone')} *</Label>
                 <Input
                   id="edit-phone"
                   {...register('phone')}
-                  placeholder="05xx xxx xx xx"
+                  placeholder={t('customers.phonePlaceholder')}
                 />
                 {errors.phone && (
                   <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
@@ -833,12 +835,12 @@ const Customers: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="edit-email">Email</Label>
+                <Label htmlFor="edit-email">{t('customers.email')}</Label>
                 <Input
                   id="edit-email"
                   type="email"
                   {...register('email')}
-                  placeholder="ornek@email.com"
+                  placeholder={t('customers.emailPlaceholder')}
                 />
                 {errors.email && (
                   <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
@@ -846,17 +848,17 @@ const Customers: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="edit-address">Adres</Label>
+                <Label htmlFor="edit-address">{t('customers.address')}</Label>
                 <Textarea
                   id="edit-address"
                   {...register('address')}
-                  placeholder="Müşteri adresi"
+                  placeholder={t('customers.addressPlaceholder')}
                   rows={2}
                 />
               </div>
 
               <div>
-                <Label htmlFor="edit-preferredLanguage">Tercih Edilen Dil</Label>
+                <Label htmlFor="edit-preferredLanguage">{t('customers.preferredLanguage')}</Label>
                 <Select 
                   value={watch('preferredLanguage')} 
                   onValueChange={(value) => setValue('preferredLanguage', value as 'TR' | 'DE' | 'EN')}
@@ -873,11 +875,11 @@ const Customers: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="edit-notes">Notlar</Label>
+                <Label htmlFor="edit-notes">{t('customers.notes')}</Label>
                 <Textarea
                   id="edit-notes"
                   {...register('notes')}
-                  placeholder="Müşteri hakkında notlar"
+                  placeholder={t('customers.notesPlaceholder')}
                   rows={2}
                 />
               </div>
@@ -892,7 +894,7 @@ const Customers: React.FC = () => {
                     reset();
                   }}
                 >
-                  İptal
+                  {t('common.cancel')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
@@ -901,7 +903,7 @@ const Customers: React.FC = () => {
                       Güncelleniyor...
                     </>
                   ) : (
-                    'Güncelle'
+                    t('common.update')
                   )}
                 </Button>
               </div>
@@ -913,7 +915,7 @@ const Customers: React.FC = () => {
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Müşteriyi Sil</AlertDialogTitle>
+              <AlertDialogTitle>{t('customers.deleteConfirmTitle')}</AlertDialogTitle>
               <AlertDialogDescription>
                 "{selectedCustomer?.name}" adlı müşteriyi silmek istediğinizden emin misiniz? 
                 Bu işlem geri alınamaz.
@@ -921,13 +923,13 @@ const Customers: React.FC = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setSelectedCustomer(null)}>
-                İptal
+                {t('common.cancel')}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={onDelete}
                 className="bg-red-500 hover:bg-red-600"
               >
-                Sil
+                {t('common.delete')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

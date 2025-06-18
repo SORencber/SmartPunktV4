@@ -3,8 +3,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/formatters'
 import { Shield, Calendar, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export function Warranties() {
+  const { t } = useTranslation();
   const warranties = [
     {
       id: 'WRT-001',
@@ -76,10 +78,10 @@ export function Warranties() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          Warranties
+          {t('warranties.title')}
         </h1>
         <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Manage warranty certificates and coverage
+          {t('warranties.subtitle')}
         </p>
       </div>
 
@@ -87,7 +89,7 @@ export function Warranties() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Warranties</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('warranties.active')}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -95,14 +97,14 @@ export function Warranties() {
               {warranties.filter(w => w.status === 'active').length}
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Currently covered
+              {t('warranties.currentlyCovered')}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('warranties.expiringSoon')}</CardTitle>
             <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
@@ -110,14 +112,14 @@ export function Warranties() {
               {warranties.filter(w => w.status === 'expiring').length}
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Within 30 days
+              {t('warranties.within30days')}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Issued</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('warranties.totalIssued')}</CardTitle>
             <Shield className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -125,7 +127,7 @@ export function Warranties() {
               {warranties.length}
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              All time
+              {t('warranties.allTime')}
             </p>
           </CardContent>
         </Card>
@@ -134,8 +136,8 @@ export function Warranties() {
       {/* Warranties List */}
       <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
         <CardHeader>
-          <CardTitle>Warranty Certificates</CardTitle>
-          <CardDescription>Manage and track warranty coverage for repairs</CardDescription>
+          <CardTitle>{t('warranties.certificates')}</CardTitle>
+          <CardDescription>{t('warranties.certificatesDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -159,7 +161,7 @@ export function Warranties() {
                         <Badge className={getStatusColor(warranty.status)}>
                           <div className="flex items-center space-x-1">
                             {getStatusIcon(warranty.status)}
-                            <span className="capitalize">{warranty.status}</span>
+                            <span className="capitalize">{t(`warranties.status.${warranty.status}`)}</span>
                           </div>
                         </Badge>
                       </div>
@@ -167,28 +169,28 @@ export function Warranties() {
                         {warranty.customerName} • {warranty.deviceType}
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Service: {warranty.serviceName}
+                        {t('warranties.service')}: {warranty.serviceName}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mb-1">
                       <Calendar className="w-4 h-4 mr-1" />
-                      Expires: {formatDate(warranty.expiryDate)}
+                      {t('warranties.expires')}: {formatDate(warranty.expiryDate)}
                     </div>
                     {warranty.status === 'active' && (
                       <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                        {daysRemaining} days remaining
+                        {t('warranties.daysRemaining', { count: daysRemaining })}
                       </p>
                     )}
                     {warranty.status === 'expiring' && (
                       <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                        Expires in {daysRemaining} days
+                        {t('warranties.expiresIn', { count: daysRemaining })}
                       </p>
                     )}
                     {warranty.status === 'expired' && (
                       <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                        Expired {Math.abs(daysRemaining)} days ago
+                        {t('warranties.expiredAgo', { count: Math.abs(daysRemaining) })}
                       </p>
                     )}
                   </div>

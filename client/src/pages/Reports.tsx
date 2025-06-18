@@ -2,8 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { BarChart3, Download, TrendingUp, Users, Package, DollarSign } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { ChartContainer, ChartTooltip, ChartLegend } from '@/components/ui/chart'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
 
 export function Reports() {
+  const { t } = useTranslation();
   const reportData = {
     salesByMonth: [
       { month: 'Jan', revenue: 25000, orders: 85 },
@@ -33,10 +37,10 @@ export function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Reports & Analytics
+            {t('reports.title')}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Analyze your business performance and trends
+            {t('reports.subtitle')}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -45,15 +49,15 @@ export function Reports() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="last30days">Last 30 Days</SelectItem>
-              <SelectItem value="last3months">Last 3 Months</SelectItem>
-              <SelectItem value="last6months">Last 6 Months</SelectItem>
-              <SelectItem value="lastyear">Last Year</SelectItem>
+              <SelectItem value="last30days">{t('reports.last30days')}</SelectItem>
+              <SelectItem value="last3months">{t('reports.last3months')}</SelectItem>
+              <SelectItem value="last6months">{t('reports.last6months')}</SelectItem>
+              <SelectItem value="lastyear">{t('reports.lastyear')}</SelectItem>
             </SelectContent>
           </Select>
           <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700">
             <Download className="w-4 h-4 mr-2" />
-            Export
+            {t('reports.export')}
           </Button>
         </div>
       </div>
@@ -62,7 +66,7 @@ export function Reports() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('reports.totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -71,14 +75,14 @@ export function Reports() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +15.2% vs last period
+              {t('reports.revenueGrowth')}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('reports.totalOrders')}</CardTitle>
             <Package className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -87,14 +91,14 @@ export function Reports() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +12.8% vs last period
+              {t('reports.ordersGrowth')}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('reports.avgOrderValue')}</CardTitle>
             <BarChart3 className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
@@ -103,14 +107,14 @@ export function Reports() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +2.1% vs last period
+              {t('reports.avgOrderGrowth')}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Growth</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('reports.customerGrowth')}</CardTitle>
             <Users className="h-4 w-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
@@ -119,7 +123,7 @@ export function Reports() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              New customers this month
+              {t('reports.newCustomers')}
             </div>
           </CardContent>
         </Card>
@@ -128,16 +132,33 @@ export function Reports() {
       {/* Revenue Chart */}
       <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
         <CardHeader>
-          <CardTitle>Revenue Trend</CardTitle>
-          <CardDescription>Monthly revenue and order volume over time</CardDescription>
+          <CardTitle>{t('reports.revenueTrend')}</CardTitle>
+          <CardDescription>{t('reports.revenueTrendDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center bg-slate-50/50 dark:bg-slate-700/50 rounded-lg">
-            <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 dark:text-slate-400">Chart visualization would be rendered here</p>
-              <p className="text-sm text-slate-500 dark:text-slate-500">Revenue trending upward by 15.2%</p>
-            </div>
+            <ChartContainer config={{ revenue: { color: '#6366f1', label: t('reports.totalRevenue') } }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={reportData.salesByMonth}
+                  margin={{ top: 24, right: 32, left: 8, bottom: 8 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 14 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 14 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v / 1000}k`} />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#6366f1"
+                    strokeWidth={3}
+                    dot={{ r: 5, stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 7 }}
+                  />
+                  <ChartTooltip />
+                  <ChartLegend verticalAlign="top" />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
@@ -146,8 +167,8 @@ export function Reports() {
         {/* Top Services */}
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader>
-            <CardTitle>Top Services</CardTitle>
-            <CardDescription>Most popular repair services by volume</CardDescription>
+            <CardTitle>{t('reports.topServices')}</CardTitle>
+            <CardDescription>{t('reports.topServicesDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -159,10 +180,10 @@ export function Reports() {
                     </div>
                     <div>
                       <p className="font-medium text-slate-900 dark:text-slate-100">
-                        {service.service}
+                        {t(`reports.serviceNames.${service.service}`)}
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {service.count} orders
+                        {service.count} {t('reports.orders')}
                       </p>
                     </div>
                   </div>
@@ -171,7 +192,7 @@ export function Reports() {
                       ${service.revenue.toLocaleString()}
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      revenue
+                      {t('reports.revenue')}
                     </p>
                   </div>
                 </div>
@@ -183,13 +204,13 @@ export function Reports() {
         {/* Customer Analytics */}
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader>
-            <CardTitle>Customer Analytics</CardTitle>
-            <CardDescription>Customer behavior and retention metrics</CardDescription>
+            <CardTitle>{t('reports.customerAnalytics')}</CardTitle>
+            <CardDescription>{t('reports.customerAnalyticsDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-700/50 rounded-lg">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Customers</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('reports.totalCustomers')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {reportData.customerStats.totalCustomers}
                 </p>
@@ -199,7 +220,7 @@ export function Reports() {
 
             <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-700/50 rounded-lg">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">New This Month</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('reports.newThisMonth')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {reportData.customerStats.newThisMonth}
                 </p>
@@ -211,7 +232,7 @@ export function Reports() {
 
             <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-700/50 rounded-lg">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Returning Customers</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('reports.returningCustomers')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {reportData.customerStats.returningCustomers}
                 </p>
@@ -223,7 +244,7 @@ export function Reports() {
 
             <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-700/50 rounded-lg">
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Avg Orders per Customer</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t('reports.avgOrdersPerCustomer')}</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {reportData.customerStats.averageOrdersPerCustomer}
                 </p>

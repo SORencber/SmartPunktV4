@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useTranslation } from 'react-i18next'
 
 interface TrackingOrder {
   orderNumber: string
@@ -81,7 +82,7 @@ export function Tracking() {
   const [searchValue, setSearchValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [order, setOrder] = useState<TrackingOrder | null>(null)
-  const [language, setLanguage] = useState('tr')
+  const { t, i18n } = useTranslation()
   const { enqueueSnackbar } = useSnackbar()
 
   const languages = [
@@ -89,98 +90,6 @@ export function Tracking() {
     { code: 'en', name: 'English', flag: '🇺🇸' },
     { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
   ]
-
-  const translations = {
-    tr: {
-      title: 'Sipariş Takibi',
-      subtitle: 'Barkod veya sipariş numarası ile takip edin',
-      searchByBarcode: 'Barkod ile Ara',
-      searchByOrderNumber: 'Sipariş Numarası ile Ara',
-      searchPlaceholder: 'Barkod veya sipariş numarasını girin',
-      searchButton: 'Takip Et',
-      orderNotFound: 'Sipariş bulunamadı',
-      orderDetails: 'Sipariş Detayları',
-      deviceInfo: 'Cihaz Bilgileri',
-      paymentInfo: 'Ödeme Bilgileri',
-      warrantyInfo: 'Garanti Bilgileri',
-      branchInfo: 'Şube Bilgileri',
-      statusHistory: 'Durum Geçmişi',
-      status: {
-        pending: 'Beklemede',
-        in_progress: 'İşlemde',
-        waiting_parts: 'Parça Bekliyor',
-        completed: 'Tamamlandı',
-        delivered: 'Teslim Edildi',
-        cancelled: 'İptal Edildi'
-      },
-      paymentStatus: {
-        pending: 'Beklemede',
-        partial: 'Kısmi Ödendi',
-        paid: 'Ödendi',
-        refunded: 'İade Edildi'
-      }
-    },
-    en: {
-      title: 'Order Tracking',
-      subtitle: 'Track with barcode or order number',
-      searchByBarcode: 'Search by Barcode',
-      searchByOrderNumber: 'Search by Order Number',
-      searchPlaceholder: 'Enter barcode or order number',
-      searchButton: 'Track',
-      orderNotFound: 'Order not found',
-      orderDetails: 'Order Details',
-      deviceInfo: 'Device Information',
-      paymentInfo: 'Payment Information',
-      warrantyInfo: 'Warranty Information',
-      branchInfo: 'Branch Information',
-      statusHistory: 'Status History',
-      status: {
-        pending: 'Pending',
-        in_progress: 'In Progress',
-        waiting_parts: 'Waiting Parts',
-        completed: 'Completed',
-        delivered: 'Delivered',
-        cancelled: 'Cancelled'
-      },
-      paymentStatus: {
-        pending: 'Pending',
-        partial: 'Partially Paid',
-        paid: 'Paid',
-        refunded: 'Refunded'
-      }
-    },
-    de: {
-      title: 'Auftragsverfolgung',
-      subtitle: 'Mit Barcode oder Auftragsnummer verfolgen',
-      searchByBarcode: 'Nach Barcode suchen',
-      searchByOrderNumber: 'Nach Auftragsnummer suchen',
-      searchPlaceholder: 'Barcode oder Auftragsnummer eingeben',
-      searchButton: 'Verfolgen',
-      orderNotFound: 'Auftrag nicht gefunden',
-      orderDetails: 'Auftragsdetails',
-      deviceInfo: 'Geräteinformationen',
-      paymentInfo: 'Zahlungsinformationen',
-      warrantyInfo: 'Garantieinformationen',
-      branchInfo: 'Filialinformationen',
-      statusHistory: 'Statusverlauf',
-      status: {
-        pending: 'Ausstehend',
-        in_progress: 'In Bearbeitung',
-        waiting_parts: 'Warten auf Teile',
-        completed: 'Abgeschlossen',
-        delivered: 'Geliefert',
-        cancelled: 'Storniert'
-      },
-      paymentStatus: {
-        pending: 'Ausstehend',
-        partial: 'Teilweise bezahlt',
-        paid: 'Bezahlt',
-        refunded: 'Erstattet'
-      }
-    }
-  }
-
-  const t = translations[language as keyof typeof translations]
 
   const handleSearch = async () => {
     if (!searchValue.trim()) {
@@ -238,7 +147,7 @@ export function Tracking() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : language === 'de' ? 'de-DE' : 'en-US', {
+    return date.toLocaleDateString(i18n.language === 'tr' ? 'tr-TR' : i18n.language === 'de' ? 'de-DE' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -248,9 +157,9 @@ export function Tracking() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat(language === 'tr' ? 'tr-TR' : language === 'de' ? 'de-DE' : 'en-US', {
+    return new Intl.NumberFormat(i18n.language === 'tr' ? 'tr-TR' : i18n.language === 'de' ? 'de-DE' : 'en-US', {
       style: 'currency',
-      currency: language === 'tr' ? 'TRY' : language === 'de' ? 'EUR' : 'USD'
+      currency: i18n.language === 'tr' ? 'TRY' : i18n.language === 'de' ? 'EUR' : 'USD'
     }).format(amount)
   }
 
@@ -259,7 +168,7 @@ export function Tracking() {
       <div className="max-w-4xl mx-auto">
         {/* Language Selector */}
         <div className="flex justify-end mb-6">
-          <Select value={language} onValueChange={setLanguage}>
+          <Select value={i18n.language} onValueChange={(value) => i18n.changeLanguage(value)}>
             <SelectTrigger className="w-40 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
               <Globe className="w-4 h-4 mr-2" />
               <SelectValue />
@@ -281,10 +190,10 @@ export function Tracking() {
         <Card className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 shadow-xl mb-8">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              {t.title}
+              {t('tracking.title')}
             </CardTitle>
             <CardDescription className="text-slate-600 dark:text-slate-400">
-              {t.subtitle}
+              {t('tracking.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -292,27 +201,27 @@ export function Tracking() {
               <div className="flex gap-4">
                 <div className="flex-1">
                   <Label htmlFor="searchType" className="text-sm font-medium">
-                    {language === 'tr' ? 'Arama Türü' : language === 'de' ? 'Suchtyp' : 'Search Type'}
+                    {t('tracking.searchType')}
                   </Label>
                   <Select value={searchType} onValueChange={(value: 'barcode' | 'orderNumber') => setSearchType(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="barcode">{t.searchByBarcode}</SelectItem>
-                      <SelectItem value="orderNumber">{t.searchByOrderNumber}</SelectItem>
+                      <SelectItem value="barcode">{t('tracking.searchByBarcode')}</SelectItem>
+                      <SelectItem value="orderNumber">{t('tracking.searchByOrderNumber')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex-2">
                   <Label htmlFor="searchValue" className="text-sm font-medium">
-                    {searchType === 'barcode' ? 'Barkod / Barcode' : (language === 'tr' ? 'Sipariş Numarası' : language === 'de' ? 'Auftragsnummer' : 'Order Number')}
+                    {searchType === 'barcode' ? 'Barkod / Barcode' : (i18n.language === 'tr' ? 'Sipariş Numarası' : i18n.language === 'de' ? 'Auftragsnummer' : 'Order Number')}
                   </Label>
                   <Input
                     id="searchValue"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    placeholder={t.searchPlaceholder}
+                    placeholder={t('tracking.searchPlaceholder')}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                     disabled={loading}
                   />
@@ -324,11 +233,11 @@ export function Tracking() {
                 className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
               >
                 {loading ? (
-                  <LoadingSpinner size="sm" text={language === 'tr' ? 'Aranıyor...' : language === 'de' ? 'Suchen...' : 'Searching...'} />
+                  <LoadingSpinner size="sm" text={i18n.language === 'tr' ? 'Aranıyor...' : i18n.language === 'de' ? 'Suchen...' : 'Searching...'} />
                 ) : (
                   <>
                     <Search className="w-4 h-4 mr-2" />
-                    {t.searchButton}
+                    {t('tracking.searchButton')}
                   </>
                 )}
               </Button>
@@ -343,10 +252,10 @@ export function Tracking() {
             <Card className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 shadow-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold">{t.orderDetails}</CardTitle>
+                  <CardTitle className="text-xl font-bold">{t('tracking.orderDetails')}</CardTitle>
                   <Badge className={`${getStatusColor(order.status)} flex items-center gap-2`}>
                     {getStatusIcon(order.status)}
-                    {t.status[order.status as keyof typeof t.status]}
+                    {t('status.' + order.status)}
                   </Badge>
                 </div>
               </CardHeader>
@@ -354,20 +263,20 @@ export function Tracking() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Sipariş Numarası' : language === 'de' ? 'Auftragsnummer' : 'Order Number'}
+                      {i18n.language === 'tr' ? 'Sipariş Numarası' : i18n.language === 'de' ? 'Auftragsnummer' : 'Order Number'}
                     </p>
                     <p className="font-semibold">{order.orderNumber}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Oluşturulma Tarihi' : language === 'de' ? 'Erstellungsdatum' : 'Created Date'}
+                      {i18n.language === 'tr' ? 'Oluşturulma Tarihi' : i18n.language === 'de' ? 'Erstellungsdatum' : 'Created Date'}
                     </p>
                     <p className="font-semibold">{formatDate(order.createdAt)}</p>
                   </div>
                   {order.estimatedCompletion && (
                     <div>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {language === 'tr' ? 'Tahmini Tamamlanma' : language === 'de' ? 'Geschätzte Fertigstellung' : 'Estimated Completion'}
+                        {i18n.language === 'tr' ? 'Tahmini Tamamlanma' : i18n.language === 'de' ? 'Geschätzte Fertigstellung' : 'Estimated Completion'}
                       </p>
                       <p className="font-semibold">{formatDate(order.estimatedCompletion)}</p>
                     </div>
@@ -375,7 +284,7 @@ export function Tracking() {
                   {order.assignedTechnician && (
                     <div>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {language === 'tr' ? 'Teknisyen' : language === 'de' ? 'Techniker' : 'Technician'}
+                        {i18n.language === 'tr' ? 'Teknisyen' : i18n.language === 'de' ? 'Techniker' : 'Technician'}
                       </p>
                       <p className="font-semibold">{order.assignedTechnician}</p>
                     </div>
@@ -389,32 +298,32 @@ export function Tracking() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  {t.deviceInfo}
+                  {t('tracking.deviceInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Cihaz Türü' : language === 'de' ? 'Gerätetyp' : 'Device Type'}
+                      {i18n.language === 'tr' ? 'Cihaz Türü' : i18n.language === 'de' ? 'Gerätetyp' : 'Device Type'}
                     </p>
                     <p className="font-semibold">{order.device.type}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Marka' : language === 'de' ? 'Marke' : 'Brand'}
+                      {i18n.language === 'tr' ? 'Marka' : i18n.language === 'de' ? 'Marke' : 'Brand'}
                     </p>
                     <p className="font-semibold">{order.device.brand}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Model' : language === 'de' ? 'Modell' : 'Model'}
+                      {i18n.language === 'tr' ? 'Model' : i18n.language === 'de' ? 'Modell' : 'Model'}
                     </p>
                     <p className="font-semibold">{order.device.model}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Servis Türü' : language === 'de' ? 'Service-Typ' : 'Service Type'}
+                      {i18n.language === 'tr' ? 'Servis Türü' : i18n.language === 'de' ? 'Service-Typ' : 'Service Type'}
                     </p>
                     <p className="font-semibold">{order.serviceType}</p>
                   </div>
@@ -428,36 +337,36 @@ export function Tracking() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5" />
-                    {t.paymentInfo}
+                    {t('tracking.paymentInfo')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {language === 'tr' ? 'Toplam Tutar' : language === 'de' ? 'Gesamtbetrag' : 'Total Amount'}
+                        {i18n.language === 'tr' ? 'Toplam Tutar' : i18n.language === 'de' ? 'Gesamtbetrag' : 'Total Amount'}
                       </span>
                       <span className="font-semibold">{formatCurrency(order.payment.amount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {language === 'tr' ? 'Ödenen' : language === 'de' ? 'Bezahlt' : 'Paid'}
+                        {i18n.language === 'tr' ? 'Ödenen' : i18n.language === 'de' ? 'Bezahlt' : 'Paid'}
                       </span>
                       <span className="font-semibold text-green-600">{formatCurrency(order.payment.paidAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {language === 'tr' ? 'Kalan' : language === 'de' ? 'Verbleibend' : 'Remaining'}
+                        {i18n.language === 'tr' ? 'Kalan' : i18n.language === 'de' ? 'Verbleibend' : 'Remaining'}
                       </span>
                       <span className="font-semibold text-red-600">{formatCurrency(order.payment.dueAmount)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-slate-600 dark:text-slate-400">
-                        {language === 'tr' ? 'Ödeme Durumu' : language === 'de' ? 'Zahlungsstatus' : 'Payment Status'}
+                        {i18n.language === 'tr' ? 'Ödeme Durumu' : i18n.language === 'de' ? 'Zahlungsstatus' : 'Payment Status'}
                       </span>
                       <Badge variant="secondary">
-                        {t.paymentStatus[order.payment.status as keyof typeof t.paymentStatus]}
+                        {t('paymentStatus.' + order.payment.status)}
                       </Badge>
                     </div>
                   </div>
@@ -470,21 +379,21 @@ export function Tracking() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Shield className="w-5 h-5" />
-                      {t.warrantyInfo}
+                      {t('tracking.warrantyInfo')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
                       <div>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                          {language === 'tr' ? 'Garanti Süresi' : language === 'de' ? 'Garantiedauer' : 'Warranty Period'}
+                          {i18n.language === 'tr' ? 'Garanti Süresi' : i18n.language === 'de' ? 'Garantiedauer' : 'Warranty Period'}
                         </p>
-                        <p className="font-semibold">{order.warranty.period} {language === 'tr' ? 'gün' : language === 'de' ? 'Tage' : 'days'}</p>
+                        <p className="font-semibold">{order.warranty.period} {i18n.language === 'tr' ? 'gün' : i18n.language === 'de' ? 'Tage' : 'days'}</p>
                       </div>
                       {order.warranty.startDate && (
                         <div>
                           <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {language === 'tr' ? 'Başlangıç Tarihi' : language === 'de' ? 'Startdatum' : 'Start Date'}
+                            {i18n.language === 'tr' ? 'Başlangıç Tarihi' : i18n.language === 'de' ? 'Startdatum' : 'Start Date'}
                           </p>
                           <p className="font-semibold">{formatDate(order.warranty.startDate)}</p>
                         </div>
@@ -492,7 +401,7 @@ export function Tracking() {
                       {order.warranty.endDate && (
                         <div>
                           <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {language === 'tr' ? 'Bitiş Tarihi' : language === 'de' ? 'Enddatum' : 'End Date'}
+                            {i18n.language === 'tr' ? 'Bitiş Tarihi' : i18n.language === 'de' ? 'Enddatum' : 'End Date'}
                           </p>
                           <p className="font-semibold">{formatDate(order.warranty.endDate)}</p>
                         </div>
@@ -508,26 +417,26 @@ export function Tracking() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="w-5 h-5" />
-                  {t.branchInfo}
+                  {t('tracking.branchInfo')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Şube Adı' : language === 'de' ? 'Filialname' : 'Branch Name'}
+                      {i18n.language === 'tr' ? 'Şube Adı' : i18n.language === 'de' ? 'Filialname' : 'Branch Name'}
                     </p>
                     <p className="font-semibold">{order.branch.name}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Adres' : language === 'de' ? 'Adresse' : 'Address'}
+                      {i18n.language === 'tr' ? 'Adres' : i18n.language === 'de' ? 'Adresse' : 'Address'}
                     </p>
                     <p className="font-semibold">{order.branch.address}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {language === 'tr' ? 'Telefon' : language === 'de' ? 'Telefon' : 'Phone'}
+                      {i18n.language === 'tr' ? 'Telefon' : i18n.language === 'de' ? 'Telefon' : 'Phone'}
                     </p>
                     <p className="font-semibold">{order.branch.phone}</p>
                   </div>
@@ -541,7 +450,7 @@ export function Tracking() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="w-5 h-5" />
-                    {t.statusHistory}
+                    {t('tracking.statusHistory')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -554,7 +463,7 @@ export function Tracking() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <Badge className={getStatusColor(status.status)}>
-                              {t.status[status.status as keyof typeof t.status]}
+                              {t('status.' + status.status)}
                             </Badge>
                             <span className="text-sm text-slate-600 dark:text-slate-400">
                               {formatDate(status.date)}

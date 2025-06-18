@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { getSettings, updateSettings, Settings as SettingsType } from '@/api/settings';
+import { useSnackbar } from 'notistack';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,47 +10,91 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Settings as SettingsIcon, Bell, Globe, Shield, CreditCard, Users } from 'lucide-react'
 import { PageContainer } from '@/components/PageContainer'
+import { useTranslation } from 'react-i18next';
 
 export function Settings() {
+  const { enqueueSnackbar } = useSnackbar();
+  const { t } = useTranslation();
+  const [settings, setSettings] = useState<SettingsType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    setLoading(true);
+    getSettings()
+      .then((data) => {
+        // Eğer defaultLanguage yoksa Türkçe olarak ayarla
+        if (!data.defaultLanguage) data.defaultLanguage = 'tr';
+        setSettings(data);
+      })
+      .catch(() => enqueueSnackbar('Ayarlar yüklenemedi', { variant: 'error' }))
+      .finally(() => setLoading(false));
+  }, [enqueueSnackbar]);
+
+  // Handlers for each field
+  const handleChange = (field: keyof SettingsType, value: any) => {
+    setSettings((prev) => prev ? { ...prev, [field]: value } : prev);
+  };
+  const handleNestedChange = (section: keyof SettingsType, field: string, value: any) => {
+    setSettings((prev) => prev ? { ...prev, [section]: { ...((prev as any)[section]), [field]: value } } : prev);
+  };
+
+  const handleSave = async () => {
+    if (!settings) return;
+    setSaving(true);
+    try {
+      await updateSettings(settings);
+      enqueueSnackbar('Ayarlar kaydedildi', { variant: 'success' });
+    } catch (e) {
+      enqueueSnackbar('Ayarlar kaydedilemedi', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !settings) {
+    return <div className="p-8 text-center text-lg">Yükleniyor...</div>;
+  }
+
   return (
-    <PageContainer title="Ayarlar" description="Sistem ve kullanıcı ayarlarını yönetin.">
+    <PageContainer title={t('settings.title')} description={t('settings.description')}>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Settings
+            {t('settings.title')}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Configure your RepairFlow Pro preferences and system settings
+            {t('settings.description')}
           </p>
         </div>
-
         <div className="grid gap-6">
           {/* General Settings */}
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <SettingsIcon className="w-5 h-5" />
-                <span>General Settings</span>
+                <span>{t('settings.general')}</span>
               </CardTitle>
-              <CardDescription>Basic configuration for your repair business</CardDescription>
+              <CardDescription>{t('settings.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="businessName">Business Name</Label>
-                  <Input id="businessName" defaultValue="RepairFlow Pro Shop" />
+                  <Label htmlFor="businessName">{t('settings.businessName')}</Label>
+                  <Input id="businessName" value={settings.businessName} onChange={e => handleChange('businessName', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="businessPhone">Business Phone</Label>
-                  <Input id="businessPhone" defaultValue="+1 (555) 123-4567" />
+                  <Label htmlFor="businessPhone">{t('settings.businessPhone')}</Label>
+                  <Input id="businessPhone" value={settings.businessPhone} onChange={e => handleChange('businessPhone', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="businessEmail">Business Email</Label>
-                  <Input id="businessEmail" type="email" defaultValue="contact@repairflowpro.com" />
+                  <Label htmlFor="businessEmail">{t('settings.businessEmail')}</Label>
+                  <Input id="businessEmail" type="email" value={settings.businessEmail} onChange={e => handleChange('businessEmail', e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select defaultValue="america/new_york">
+                  <Label htmlFor="timezone">{t('settings.timezone')}</Label>
+                  <Select value={settings.timezone} onValueChange={v => handleChange('timezone', v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -64,8 +111,8 @@ export function Settings() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="businessAddress">Business Address</Label>
-                <Input id="businessAddress" defaultValue="123 Main Street, City, State 12345" />
+                <Label htmlFor="businessAddress">{t('settings.businessAddress')}</Label>
+                <Input id="businessAddress" value={settings.businessAddress} onChange={e => handleChange('businessAddress', e.target.value)} />
               </div>
             </CardContent>
           </Card>
@@ -75,15 +122,15 @@ export function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Globe className="w-5 h-5" />
-                <span>Language & Localization</span>
+                <span>{t('settings.language')}</span>
               </CardTitle>
-              <CardDescription>Configure language preferences and regional settings</CardDescription>
+              <CardDescription>{t('settings.language')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Default Language</Label>
-                  <Select defaultValue="en">
+                  <Label>{t('settings.language')}</Label>
+                  <Select value={settings.defaultLanguage || 'tr'} onValueChange={v => handleChange('defaultLanguage', v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -95,8 +142,8 @@ export function Settings() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Default Currency</Label>
-                  <Select defaultValue="usd">
+                  <Label>{t('settings.currency')}</Label>
+                  <Select value={settings.defaultCurrency} onValueChange={v => handleChange('defaultCurrency', v)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -116,7 +163,7 @@ export function Settings() {
                       Automatically set customer language based on phone country code
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={settings.autoDetectCustomerLanguage} onCheckedChange={v => handleChange('autoDetectCustomerLanguage', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -125,7 +172,7 @@ export function Settings() {
                       Display country flags next to language options
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={settings.showLanguageFlags} onCheckedChange={v => handleChange('showLanguageFlags', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
               </div>
             </CardContent>
@@ -149,7 +196,7 @@ export function Settings() {
                       Receive notifications via email
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={settings.notifications.email} onCheckedChange={v => handleNestedChange('notifications', 'email', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -158,7 +205,7 @@ export function Settings() {
                       Receive critical alerts via SMS
                     </p>
                   </div>
-                  <Switch />
+                  <Switch checked={settings.notifications.sms} onCheckedChange={v => handleNestedChange('notifications', 'sms', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -167,7 +214,7 @@ export function Settings() {
                       Get notified when inventory is running low
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={settings.notifications.lowStock} onCheckedChange={v => handleNestedChange('notifications', 'lowStock', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -176,7 +223,7 @@ export function Settings() {
                       Notify when order status changes
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={settings.notifications.orderStatus} onCheckedChange={v => handleNestedChange('notifications', 'orderStatus', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
               </div>
             </CardContent>
@@ -200,7 +247,7 @@ export function Settings() {
                       Add an extra layer of security to your account
                     </p>
                   </div>
-                  <Switch />
+                  <Switch checked={settings.security.twoFactorAuth} onCheckedChange={v => handleNestedChange('security', 'twoFactorAuth', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -209,7 +256,7 @@ export function Settings() {
                       Automatically log out after inactivity
                     </p>
                   </div>
-                  <Select defaultValue="30">
+                  <Select value={settings.security.sessionTimeout} onValueChange={v => handleNestedChange('security', 'sessionTimeout', v)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -226,10 +273,10 @@ export function Settings() {
               <div className="space-y-2">
                 <Label>Change Password</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input type="password" placeholder="Current password" />
-                  <Input type="password" placeholder="New password" />
+                  <Input type="password" placeholder="Current password" disabled />
+                  <Input type="password" placeholder="New password" disabled />
                 </div>
-                <Button size="sm" className="mt-2">Update Password</Button>
+                <Button size="sm" className="mt-2" disabled>Update Password</Button>
               </div>
             </CardContent>
           </Card>
@@ -252,7 +299,7 @@ export function Settings() {
                       Default role assigned to new users
                     </p>
                   </div>
-                  <Select defaultValue="technician">
+                  <Select value={settings.userManagement.defaultUserRole} onValueChange={v => handleNestedChange('userManagement', 'defaultUserRole', v)}>
                     <SelectTrigger className="w-40">
                       <SelectValue />
                     </SelectTrigger>
@@ -270,7 +317,7 @@ export function Settings() {
                       New users must verify their email address
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={settings.userManagement.requireEmailVerification} onCheckedChange={v => handleNestedChange('userManagement', 'requireEmailVerification', v)} className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-gray-300" />
                 </div>
               </div>
             </CardContent>
@@ -278,9 +325,9 @@ export function Settings() {
 
           {/* Save Settings */}
           <div className="flex justify-end space-x-2">
-            <Button variant="outline">Reset to Defaults</Button>
-            <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700">
-              Save Settings
+            <Button variant="outline" disabled={saving || loading}>{t('settings.reset')}</Button>
+            <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700" onClick={handleSave} disabled={saving || loading}>
+              {saving ? t('settings.save') + '...' : t('settings.save')}
             </Button>
           </div>
         </div>

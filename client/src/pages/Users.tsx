@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch"
 import { api } from "@/api/api"
 import { PageContainer } from '@/components/PageContainer'
 import { useSnackbar } from 'notistack'
+import { useTranslation } from 'react-i18next'
 
 interface User {
   _id: string
@@ -101,6 +102,7 @@ export default function Users() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [branches, setBranches] = useState<Array<{ _id: string; name: string }>>([])
+  const { t } = useTranslation()
 
   const { register: registerCreate, handleSubmit: handleCreateSubmit, reset: resetCreate, formState: { errors: createErrors }, watch, setValue } = useForm<CreateUserForm>()
   const { register: registerEdit, handleSubmit: handleEditSubmit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<EditUserForm>()
@@ -296,31 +298,31 @@ export default function Users() {
   }
 
   return (
-    <PageContainer title="Kullanıcı Yönetimi" description="Kullanıcılarınızı ve yetkilerini yönetin.">
+    <PageContainer title={t('users.title')} description={t('users.description')}>
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">User Management</h1>
+        <h1 className="text-3xl font-bold">{t('users.title')}</h1>
         {currentUser?.role === "admin" && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Add User
+                {t('users.add')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
+                <DialogTitle>{t('users.createTitle')}</DialogTitle>
                 <DialogDescription>
-                  Add a new user to the system. All fields are required.
+                  {t('users.createDesc')}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t('users.form.name')}</Label>
                   <Input
                     id="name"
-                    {...registerCreate("name", { required: "Name is required" })}
+                    {...registerCreate("name", { required: t('users.form.nameRequired') })}
                   />
                   {createErrors.name && (
                     <p className="text-sm text-red-500">{createErrors.name.message}</p>
@@ -328,15 +330,15 @@ export default function Users() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('users.form.email')}</Label>
                   <Input
                     id="email"
                     type="email"
                     {...registerCreate("email", {
-                      required: "Email is required",
+                      required: t('users.form.emailRequired'),
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address",
+                        message: t('users.form.emailInvalid'),
                       },
                     })}
                   />
@@ -346,7 +348,7 @@ export default function Users() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('users.form.phone')}</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -354,7 +356,7 @@ export default function Users() {
                     {...registerCreate("phone", {
                       pattern: {
                         value: /^\+49[0-9]{6,14}$/,
-                        message: "Invalid phone number format. Must start with +49 followed by 6-14 digits",
+                        message: t('users.form.phoneInvalid'),
                       },
                       onChange: (e) => handlePhoneChange(e, registerCreate("phone").onChange, "phone")
                     })}
@@ -365,16 +367,16 @@ export default function Users() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t('users.form.password')}</Label>
                   <div className="relative">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       {...registerCreate("password", {
-                        required: "Password is required",
+                        required: t('users.form.passwordRequired'),
                         minLength: {
                           value: 8,
-                          message: "Password must be at least 8 characters",
+                          message: t('users.form.passwordMinLength'),
                         },
                       })}
                     />
@@ -398,14 +400,14 @@ export default function Users() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="role">{t('users.form.role')}</Label>
                   <Select
                     onValueChange={(value) => {
                       setValue("role", value, { shouldValidate: true })
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
+                      <SelectValue placeholder={t('users.form.selectRole')} />
                     </SelectTrigger>
                     <SelectContent>
                       {roles.map((role) => (
@@ -421,7 +423,7 @@ export default function Users() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="branchId">Branch</Label>
+                  <Label htmlFor="branchId">{t('users.form.branch')}</Label>
                   <Select
                     onValueChange={(value) => {
                       const event = {
@@ -431,11 +433,11 @@ export default function Users() {
                         },
                       }
                       registerCreate("branchId", {
-                        required: watch('role') === 'branch_staff' || watch('role') === 'central_staff' ? "Branch is required for branch staff and central staff" : false,
+                        required: watch('role') === 'branch_staff' || watch('role') === 'central_staff' ? t('users.form.branchRequired') : false,
                         validate: (value) => {
                           const role = watch('role');
                           if ((role === 'branch_staff' || role === 'central_staff') && !value) {
-                            return "Branch is required for branch staff and central staff";
+                            return t('users.form.branchRequired');
                           }
                           return true;
                         }
@@ -443,7 +445,7 @@ export default function Users() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select branch" />
+                      <SelectValue placeholder={t('users.form.selectBranch')} />
                     </SelectTrigger>
                     <SelectContent>
                       {branches.map((branch) => (
@@ -464,9 +466,9 @@ export default function Users() {
                     variant="outline"
                     onClick={() => setIsCreateDialogOpen(false)}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Create User</Button>
+                  <Button type="submit">{t('users.create')}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -478,17 +480,17 @@ export default function Users() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>{t('users.editTitle')}</DialogTitle>
             <DialogDescription>
-              Update user information. All fields are required.
+              {t('users.editDesc')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit(onEditSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">{t('users.form.name')}</Label>
               <Input
                 id="edit-name"
-                {...registerEdit("fullName", { required: "Name is required" })}
+                {...registerEdit("fullName", { required: t('users.form.nameRequired') })}
               />
               {editErrors.fullName && (
                 <p className="text-sm text-red-500">{editErrors.fullName.message}</p>
@@ -496,15 +498,15 @@ export default function Users() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">{t('users.form.email')}</Label>
               <Input
                 id="edit-email"
                 type="email"
                 {...registerEdit("email", {
-                  required: "Email is required",
+                  required: t('users.form.emailRequired'),
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
+                    message: t('users.form.emailInvalid'),
                   },
                 })}
               />
@@ -514,7 +516,7 @@ export default function Users() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
+              <Label htmlFor="edit-phone">{t('users.form.phone')}</Label>
               <Input
                 id="edit-phone"
                 type="tel"
@@ -522,7 +524,7 @@ export default function Users() {
                 {...registerEdit("phone", {
                   pattern: {
                     value: /^\+49[0-9]{6,14}$/,
-                    message: "Invalid phone number format. Must start with +49 followed by 6-14 digits",
+                    message: t('users.form.phoneInvalid'),
                   },
                   onChange: (e) => handlePhoneChange(e, registerEdit("phone").onChange, "phone")
                 })}
@@ -533,7 +535,7 @@ export default function Users() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-role">Role</Label>
+              <Label htmlFor="edit-role">{t('users.form.role')}</Label>
               <Select
                 onValueChange={(value) => {
                   setEditValue("role", value, { shouldValidate: true })
@@ -541,7 +543,7 @@ export default function Users() {
                 defaultValue={selectedUser?.role}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role">
+                  <SelectValue placeholder={t('users.form.selectRole')}>
                     {selectedUser && getRoleName(selectedUser.role)}
                   </SelectValue>
                 </SelectTrigger>
@@ -559,7 +561,7 @@ export default function Users() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-branch">Branch</Label>
+              <Label htmlFor="edit-branch">{t('users.form.branch')}</Label>
               <Select
                 onValueChange={(value) => {
                   const event = {
@@ -573,7 +575,7 @@ export default function Users() {
                 defaultValue={selectedUser?.branch?._id}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
+                  <SelectValue placeholder={t('users.form.selectBranch')} />
                 </SelectTrigger>
                 <SelectContent>
                   {branches.map((branch) => (
@@ -591,9 +593,9 @@ export default function Users() {
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button type="submit">Update User</Button>
+              <Button type="submit">{t('users.update')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -601,14 +603,14 @@ export default function Users() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>{t('users.listTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search users..."
+                placeholder={t('users.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -620,14 +622,14 @@ export default function Users() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t('users.table.name')}</TableHead>
+                  <TableHead>{t('users.table.email')}</TableHead>
+                  <TableHead>{t('users.table.phone')}</TableHead>
+                  <TableHead>{t('users.table.role')}</TableHead>
+                  <TableHead>{t('users.table.branch')}</TableHead>
+                  <TableHead>{t('users.table.status')}</TableHead>
+                  <TableHead>{t('users.table.createdAt')}</TableHead>
+                  <TableHead>{t('users.table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -26,6 +26,7 @@ import { useForm } from "react-hook-form"
 import { api } from "@/api/api"
 import { PageContainer } from '@/components/PageContainer'
 import { useSnackbar } from 'notistack'
+import { useTranslation } from 'react-i18next'
 
 interface Branch {
   _id: string
@@ -73,6 +74,7 @@ export default function Branches() {
 
   const { register: registerCreate, handleSubmit: handleCreateSubmit, reset: resetCreate, formState: { errors: createErrors } } = useForm<BranchForm>()
   const { register: registerEdit, handleSubmit: handleEditSubmit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<BranchForm>()
+  const { t } = useTranslation()
 
   useEffect(() => {
     // Sadece admin kullanıcısı tüm şubeleri görebilir
@@ -259,31 +261,31 @@ export default function Branches() {
   }
 
   return (
-    <PageContainer title="Şube Yönetimi" description="Şubelerinizi yönetin.">
+    <PageContainer title={t('branches.title')} description={t('branches.description')}>
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Branch Management</h1>
+        <h1 className="text-3xl font-bold">{t('branches.title')}</h1>
         {currentUser?.role === "admin" && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Branch
+                {t('branches.add')}
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg sm:max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Branch</DialogTitle>
+                <DialogTitle>{t('branches.createTitle')}</DialogTitle>
                 <DialogDescription>
-                  Add a new branch to the system. All fields are required.
+                  {t('branches.createDesc')}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Branch Name</Label>
+                  <Label htmlFor="name">{t('branches.form.name')}</Label>
                   <Input
                     id="name"
-                    {...registerCreate("name", { required: "Branch name is required" })}
+                    {...registerCreate("name", { required: t('branches.form.nameRequired') })}
                   />
                   {createErrors.name && (
                     <p className="text-sm text-red-500">{createErrors.name.message}</p>
@@ -291,23 +293,23 @@ export default function Branches() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="code">Branch Code</Label>
+                  <Label htmlFor="code">{t('branches.form.code')}</Label>
                   <Input
                     id="code"
-                    placeholder="Will be auto-generated if left empty"
+                    placeholder={t('branches.form.codePlaceholder')}
                     {...registerCreate("code")}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Leave empty to auto-generate a code based on branch name
+                    {t('branches.form.codeHint')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t('branches.form.phone')}</Label>
                   <Input
                     id="phone"
                     type="tel"
-                    {...registerCreate("phone", { required: "Phone is required" })}
+                    {...registerCreate("phone", { required: t('branches.form.phoneRequired') })}
                   />
                   {createErrors.phone && (
                     <p className="text-sm text-red-500">{createErrors.phone.message}</p>
@@ -315,10 +317,10 @@ export default function Branches() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="managerName">Manager Name</Label>
+                  <Label htmlFor="managerName">{t('branches.form.managerName')}</Label>
                   <Input
                     id="managerName"
-                    {...registerCreate("managerName", { required: "Manager name is required" })}
+                    {...registerCreate("managerName", { required: t('branches.form.managerNameRequired') })}
                   />
                   {createErrors.managerName && (
                     <p className="text-sm text-red-500">{createErrors.managerName.message}</p>
@@ -326,10 +328,10 @@ export default function Branches() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address.street">Street Address</Label>
+                  <Label htmlFor="address.street">{t('branches.form.street')}</Label>
                   <Input
                     id="address.street"
-                    {...registerCreate("address.street", { required: "Street address is required" })}
+                    {...registerCreate("address.street", { required: t('branches.form.streetRequired') })}
                   />
                   {createErrors.address?.street && (
                     <p className="text-sm text-red-500">{createErrors.address.street.message}</p>
@@ -338,10 +340,10 @@ export default function Branches() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="address.state">State</Label>
+                    <Label htmlFor="address.state">{t('branches.form.state')}</Label>
                     <Input
                       id="address.state"
-                      {...registerCreate("address.state", { required: "State is required" })}
+                      {...registerCreate("address.state", { required: t('branches.form.stateRequired') })}
                     />
                     {createErrors.address?.state && (
                       <p className="text-sm text-red-500">{createErrors.address.state.message}</p>
@@ -349,10 +351,10 @@ export default function Branches() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address.city">City</Label>
+                    <Label htmlFor="address.city">{t('branches.form.city')}</Label>
                     <Input
                       id="address.city"
-                      {...registerCreate("address.city", { required: "City is required" })}
+                      {...registerCreate("address.city", { required: t('branches.form.cityRequired') })}
                     />
                     {createErrors.address?.city && (
                       <p className="text-sm text-red-500">{createErrors.address.city.message}</p>
@@ -361,10 +363,10 @@ export default function Branches() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address.country">Country</Label>
+                  <Label htmlFor="address.country">{t('branches.form.country')}</Label>
                   <Input
                     id="address.country"
-                    {...registerCreate("address.country", { required: "Country is required" })}
+                    {...registerCreate("address.country", { required: t('branches.form.countryRequired') })}
                   />
                   {createErrors.address?.country && (
                     <p className="text-sm text-red-500">{createErrors.address.country.message}</p>
@@ -372,7 +374,7 @@ export default function Branches() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address.postalCode">Postal Code</Label>
+                  <Label htmlFor="address.postalCode">{t('branches.form.postalCode')}</Label>
                   <Input
                     id="address.postalCode"
                     {...registerCreate("address.postalCode")}
@@ -385,9 +387,9 @@ export default function Branches() {
                     variant="outline"
                     onClick={() => setIsCreateDialogOpen(false)}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Create Branch</Button>
+                  <Button type="submit">{t('branches.create')}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -399,17 +401,17 @@ export default function Branches() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Branch</DialogTitle>
+            <DialogTitle>{t('branches.editTitle')}</DialogTitle>
             <DialogDescription>
-              Update branch information. All fields are required.
+              {t('branches.editDesc')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit(onEditSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Branch Name</Label>
+              <Label htmlFor="edit-name">{t('branches.form.name')}</Label>
               <Input
                 id="edit-name"
-                {...registerEdit("name", { required: "Branch name is required" })}
+                {...registerEdit("name", { required: t('branches.form.nameRequired') })}
               />
               {editErrors.name && (
                 <p className="text-sm text-red-500">{editErrors.name.message}</p>
@@ -417,7 +419,7 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-code">Branch Code</Label>
+              <Label htmlFor="edit-code">{t('branches.form.code')}</Label>
               <Input
                 id="edit-code"
                 {...registerEdit("code")}
@@ -425,11 +427,11 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
+              <Label htmlFor="edit-phone">{t('branches.form.phone')}</Label>
               <Input
                 id="edit-phone"
                 type="tel"
-                {...registerEdit("phone", { required: "Phone is required" })}
+                {...registerEdit("phone", { required: t('branches.form.phoneRequired') })}
               />
               {editErrors.phone && (
                 <p className="text-sm text-red-500">{editErrors.phone.message}</p>
@@ -437,10 +439,10 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-managerName">Manager Name</Label>
+              <Label htmlFor="edit-managerName">{t('branches.form.managerName')}</Label>
               <Input
                 id="edit-managerName"
-                {...registerEdit("managerName", { required: "Manager name is required" })}
+                {...registerEdit("managerName", { required: t('branches.form.managerNameRequired') })}
               />
               {editErrors.managerName && (
                 <p className="text-sm text-red-500">{editErrors.managerName.message}</p>
@@ -448,10 +450,10 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-address.street">Street Address</Label>
+              <Label htmlFor="edit-address.street">{t('branches.form.street')}</Label>
               <Input
                 id="edit-address.street"
-                {...registerEdit("address.street", { required: "Street address is required" })}
+                {...registerEdit("address.street", { required: t('branches.form.streetRequired') })}
               />
               {editErrors.address?.street && (
                 <p className="text-sm text-red-500">{editErrors.address.street.message}</p>
@@ -459,10 +461,10 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-address.city">City</Label>
+              <Label htmlFor="edit-address.city">{t('branches.form.city')}</Label>
               <Input
                 id="edit-address.city"
-                {...registerEdit("address.city", { required: "City is required" })}
+                {...registerEdit("address.city", { required: t('branches.form.cityRequired') })}
               />
               {editErrors.address?.city && (
                 <p className="text-sm text-red-500">{editErrors.address.city.message}</p>
@@ -470,10 +472,10 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-address.state">State</Label>
+              <Label htmlFor="edit-address.state">{t('branches.form.state')}</Label>
               <Input
                 id="edit-address.state"
-                {...registerEdit("address.state", { required: "State is required" })}
+                {...registerEdit("address.state", { required: t('branches.form.stateRequired') })}
               />
               {editErrors.address?.state && (
                 <p className="text-sm text-red-500">{editErrors.address.state.message}</p>
@@ -481,10 +483,10 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-address.country">Country</Label>
+              <Label htmlFor="edit-address.country">{t('branches.form.country')}</Label>
               <Input
                 id="edit-address.country"
-                {...registerEdit("address.country", { required: "Country is required" })}
+                {...registerEdit("address.country", { required: t('branches.form.countryRequired') })}
               />
               {editErrors.address?.country && (
                 <p className="text-sm text-red-500">{editErrors.address.country.message}</p>
@@ -492,7 +494,7 @@ export default function Branches() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-address.postalCode">Postal Code</Label>
+              <Label htmlFor="edit-address.postalCode">{t('branches.form.postalCode')}</Label>
               <Input
                 id="edit-address.postalCode"
                 {...registerEdit("address.postalCode")}
@@ -505,9 +507,9 @@ export default function Branches() {
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button type="submit">Update Branch</Button>
+              <Button type="submit">{t('branches.update')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -515,14 +517,14 @@ export default function Branches() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Branches</CardTitle>
+          <CardTitle>{t('branches.listTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search branches..."
+                placeholder={t('branches.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -534,14 +536,14 @@ export default function Branches() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Branch Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Manager</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created At</TableHead>
-                  {currentUser?.role === "admin" && <TableHead>Actions</TableHead>}
+                  <TableHead>{t('branches.table.name')}</TableHead>
+                  <TableHead>{t('branches.table.code')}</TableHead>
+                  <TableHead>{t('branches.table.phone')}</TableHead>
+                  <TableHead>{t('branches.table.manager')}</TableHead>
+                  <TableHead>{t('branches.table.address')}</TableHead>
+                  <TableHead>{t('branches.table.status')}</TableHead>
+                  <TableHead>{t('branches.table.createdAt')}</TableHead>
+                  {currentUser?.role === "admin" && <TableHead>{t('branches.table.actions')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -15,6 +15,7 @@ const trackingRoutes = require('./trackingRoutes');
 const reportRoutes = require('./reportRoutes');
 const productRoutes = require('./productRoutes');
 const modelRoutes = require('./modelRoutes');
+const settingsRoutes = require('./settingsRoutes');
 
 // Use routes
 router.use('/auth', authMiddleware);
@@ -29,6 +30,7 @@ router.use('/tracking', trackingRoutes);
 router.use('/reports', reportRoutes);
 router.use('/products', productRoutes);
 router.use('/models', modelRoutes);
+router.use('/settings', settingsRoutes);
 router.use('/repairs', require('./repairRoutes'));
 
 // Root path response

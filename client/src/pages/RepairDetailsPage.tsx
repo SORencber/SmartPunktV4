@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { getDeviceTypes, type DeviceType } from '@/api/deviceTypes';
 import { getBrands, type Brand } from '@/api/brands';
 import { getModels, type Model } from '@/api/models';
+import { useTranslation } from 'react-i18next';
 
 interface Repair {
   _id: string
@@ -145,6 +146,7 @@ export default function RepairDetailsPage() {
   const [models, setModels] = useState<Model[]>([])
 
   const { enqueueSnackbar } = useSnackbar()
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadRepair()
@@ -315,16 +317,16 @@ export default function RepairDetailsPage() {
   };
 
   const statusOptions = [
-    { value: 'pending', label: 'Beklemede' },
-    { value: 'shipped', label: 'Kargoda' },
-    { value: 'delivered', label: 'Kargo Alındı' },
-    { value: 'completed', label: 'Tamamlandı' },
-    { value: 'cancelled', label: 'İptal Edildi' },
+    { value: 'pending', label: t('repairs.status.pending') },
+    { value: 'shipped', label: t('repairs.status.shipped') },
+    { value: 'delivered', label: t('repairs.status.delivered') },
+    { value: 'completed', label: t('repairs.status.completed') },
+    { value: 'cancelled', label: t('repairs.status.cancelled') },
   ];
 
   const getStatusLabel = (status: string) => {
-    if (status === 'in progress' || status === 'shipped') return 'Kargoda';
-    if (status === 'delivered') return 'Kargo Alındı';
+    if (status === 'in progress' || status === 'shipped') return t('repairs.status.shipped');
+    if (status === 'delivered') return t('repairs.status.delivered');
     return statusOptions.find(opt => opt.value === status)?.label || getDisplayName(status);
   };
   const getStatusColor = (status?: string) => {
@@ -394,9 +396,9 @@ export default function RepairDetailsPage() {
   if (!repair) {
     return (
       <div className="text-center py-8">
-        <p className="text-slate-600 dark:text-slate-400">Repair not found</p>
+        <p className="text-slate-600 dark:text-slate-400">{t('repairs.notFound')}</p>
         <Button onClick={() => navigate('/repairs')} className="mt-4">
-          Back to Repairs
+          {t('repairs.backToRepairs')}
         </Button>
       </div>
     )
@@ -412,22 +414,22 @@ export default function RepairDetailsPage() {
               onClick={() => navigate('/repairs')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('common.back')}
             </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setShowBarcodeDialog(true)}>
               <Barcode className="h-4 w-4 mr-2" />
-              Show Barcode
+              {t('repairs.showBarcode')}
             </Button>
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />
-              Yazdır
+              {t('repairs.print')}
             </Button>
             {repair.status === 'completed' && (
               <Button variant="outline" onClick={handleWarrantyPrint}>
                 <Shield className="h-4 w-4 mr-2" />
-                Garanti Yazdır
+                {t('repairs.printWarranty')}
               </Button>
             )}
             <DropdownMenu>
@@ -440,15 +442,15 @@ export default function RepairDetailsPage() {
                 {repair.status !== 'cancelled' && repair.status !== 'completed' && (
                   <>
                     <DropdownMenuItem onClick={() => setShowStatusDialog(true)}>
-                      Update Status
+                      {t('repairs.updateStatus')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowCancelDialog(true)}>
-                      Cancel Repair
+                      {t('repairs.cancelRepair')}
                     </DropdownMenuItem>
                   </>
                 )}
                 <DropdownMenuItem onClick={() => navigate(`/customers/${repair.customerId._id}`)}>
-                  View Customer
+                  {t('repairs.viewCustomer')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -459,7 +461,7 @@ export default function RepairDetailsPage() {
         <Card className="bg-blue-600 text-white border-blue-500">
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-4">
-              <CardTitle className="text-white">Repair Summary</CardTitle>
+              <CardTitle className="text-white">{t('repairs.summary')}</CardTitle>
               <Badge className={cn(getStatusColor(repair.status))}>{getStatusLabel(repair.status)}</Badge>
             </div>
             <div className="flex items-center gap-2">
@@ -476,7 +478,7 @@ export default function RepairDetailsPage() {
                   {updating ? (
                     <Loader2 className="h-4 w-4 animate-spin text-blue-600 mx-auto" />
                   ) : (
-                    <SelectValue placeholder="Durum değiştir" />
+                    <SelectValue placeholder={t('repairs.updateStatus')} />
                   )}
                 </SelectTrigger>
                 <SelectContent>
@@ -489,15 +491,15 @@ export default function RepairDetailsPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-sm text-blue-100">Repair Number</p>
+              <p className="text-sm text-blue-100">{t('repairs.orderNo')}</p>
               <p className="font-medium text-white">{repair.orderId || '-'}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-blue-100">Branch</p>
+              <p className="text-sm text-blue-100">{t('repairs.branch')}</p>
               <p className="font-medium text-white">{getDisplayName(repair.branch?.name)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-blue-100">Created At</p>
+              <p className="text-sm text-blue-100">{t('repairs.createdAt')}</p>
               <p className="font-medium text-white">{formatDate(repair.createdAt)}</p>
             </div>
           </CardContent>
@@ -505,13 +507,13 @@ export default function RepairDetailsPage() {
 
         <Card className="bg-blue-600 text-white border-blue-500">
           <CardHeader>
-            <CardTitle className="text-white">Products & Payment</CardTitle>
-            <CardDescription className="text-blue-100">Product and payment information</CardDescription>
+            <CardTitle className="text-white">{t('repairs.productsAndPayment')}</CardTitle>
+            <CardDescription className="text-blue-100">{t('repairs.productsAndPaymentDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Device Info */}
             <div className="mb-2">
-              <div className="font-semibold text-white">Device</div>
+              <div className="font-semibold text-white">{t('repairs.device')}</div>
               <div className="text-blue-100 text-sm">
                 {getDeviceTypeName(repair.device?.deviceTypeId)} / {getBrandName(repair.device?.brandId)} {getModelName(repair.device?.modelId)}
               </div>
@@ -538,33 +540,33 @@ export default function RepairDetailsPage() {
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
-              <p className="font-medium text-white">Total Amount</p>
+              <p className="font-medium text-white">{t('repairs.totalAmount')}</p>
               <p className="text-lg font-semibold text-white">
                 {formatCurrency(repair.payment.totalAmount ?? 0)}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Deposit</p>
+              <p className="text-sm text-blue-100">{t('repairs.deposit')}</p>
               <p className="font-medium text-white">
                 {formatCurrency(repair.payment.depositAmount ?? 0)}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Remaining</p>
+              <p className="text-sm text-blue-100">{t('repairs.remaining')}</p>
               <p className="font-medium text-white">
                 {formatCurrency(repair.payment.remainingAmount ?? 0)}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Central Payment Total</p>
+              <p className="text-sm text-blue-100">{t('repairs.totalCentralPayment')}</p>
               <p className="font-medium text-white">{repair.totalCentralPayment !== undefined ? formatCurrency(repair.totalCentralPayment) : '-'}</p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Branch Profit Total</p>
+              <p className="text-sm text-blue-100">{t('repairs.totalBranchProfit')}</p>
               <p className="font-medium text-white">{repair.totalBranchProfit !== undefined ? formatCurrency(repair.totalBranchProfit) : '-'}</p>
             </div>
           </CardContent>
@@ -572,24 +574,24 @@ export default function RepairDetailsPage() {
 
         <Card className="bg-white text-slate-900 border-slate-200">
           <CardHeader>
-            <CardTitle className="text-slate-900">Müşteri Bilgileri</CardTitle>
-            <CardDescription className="text-slate-500">Müşteriye ait detaylar</CardDescription>
+            <CardTitle className="text-slate-900">{t('repairs.customerInfo')}</CardTitle>
+            <CardDescription className="text-slate-500">{t('repairs.customerInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <span className="font-semibold">Ad Soyad:</span> {repair.customerId?.name || '-'}
+              <span className="font-semibold">{t('repairs.name')}:</span> {repair.customerId?.name || '-'}
             </div>
             <div>
-              <span className="font-semibold">Telefon:</span> {repair.customerId?.phone || '-'}
+              <span className="font-semibold">{t('repairs.phone')}:</span> {repair.customerId?.phone || '-'}
             </div>
             {repair.customerId?.email && (
               <div>
-                <span className="font-semibold">E-posta:</span> {repair.customerId.email}
+                <span className="font-semibold">{t('repairs.email')}:</span> {repair.customerId.email}
               </div>
             )}
             {repair.customerId?.address && (
               <div>
-                <span className="font-semibold">Adres:</span> {formatAddress(repair.customerId.address)}
+                <span className="font-semibold">{t('repairs.address')}:</span> {formatAddress(repair.customerId.address)}
               </div>
             )}
           </CardContent>
@@ -597,14 +599,14 @@ export default function RepairDetailsPage() {
 
         <Card className="bg-blue-600 text-white border-blue-500">
           <CardHeader>
-            <CardTitle className="text-white">Customer Information</CardTitle>
-            <CardDescription className="text-blue-100">Customer and loaned device information</CardDescription>
+            <CardTitle className="text-white">{t('repairs.customerInfo')}</CardTitle>
+            <CardDescription className="text-blue-100">{t('repairs.customerInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {repair.isLoanedDeviceGiven && (
               <Card className="bg-red-600 text-white border-red-500">
                 <CardHeader>
-                  <CardTitle className="text-white">Loaned Device</CardTitle>
+                  <CardTitle className="text-white">{t('repairs.loanedDevice')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="font-medium">
@@ -618,8 +620,8 @@ export default function RepairDetailsPage() {
 
         <Card className="bg-amber-200 text-amber-900 border-amber-400">
           <CardHeader>
-            <CardTitle className="text-amber-900">Status History</CardTitle>
-            <CardDescription className="text-amber-800">Timeline of repair status changes</CardDescription>
+            <CardTitle className="text-amber-900">{t('repairs.statusHistory')}</CardTitle>
+            <CardDescription className="text-amber-800">{t('repairs.statusHistoryDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -645,7 +647,7 @@ export default function RepairDetailsPage() {
                       {formatDate(status.timestamp)}
                     </p>
                     <p className="text-sm text-amber-900">
-                      {status.user && (status.user.fullName || status.user.email) ? `${status.user.fullName || ''} ${status.user.email ? `<${status.user.email}>` : ''}` : 'User Information Missing'}
+                      {status.user && (status.user.fullName || status.user.email) ? `${status.user.fullName || ''} ${status.user.email ? `<${status.user.email}>` : ''}` : t('repairs.noUserInfo')}
                     </p>
                     {status.notes && (
                       <p className="text-sm text-amber-800 mt-1">

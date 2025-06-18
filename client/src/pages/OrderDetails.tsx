@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { getDeviceTypes, type DeviceType } from '@/api/deviceTypes';
 import { getBrands, type Brand } from '@/api/brands';
 import { getModels, type Model } from '@/api/models';
+import { useTranslation } from 'react-i18next';
 
 interface Order {
   _id: string
@@ -139,6 +140,7 @@ export function OrderDetails() {
   const [models, setModels] = useState<Model[]>([])
 
   const { enqueueSnackbar } = useSnackbar()
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadOrder()
@@ -309,16 +311,16 @@ export function OrderDetails() {
   };
 
   const statusOptions = [
-    { value: 'pending', label: 'Beklemede' },
-    { value: 'shipped', label: 'Kargoda' },
-    { value: 'delivered', label: 'Kargo Alındı' },
-    { value: 'completed', label: 'Tamamlandı' },
-    { value: 'cancelled', label: 'İptal Edildi' },
+    { value: 'pending', label: t('orders.status.pending') },
+    { value: 'shipped', label: t('orders.status.shipped') },
+    { value: 'delivered', label: t('orders.status.delivered') },
+    { value: 'completed', label: t('orders.status.completed') },
+    { value: 'cancelled', label: t('orders.status.cancelled') },
   ];
 
   const getStatusLabel = (status: string) => {
-    if (status === 'in progress' || status === 'shipped') return 'Kargoda';
-    if (status === 'delivered') return 'Kargo Alındı';
+    if (status === 'in progress' || status === 'shipped') return t('orders.status.shipped');
+    if (status === 'delivered') return t('orders.status.delivered');
     return statusOptions.find(opt => opt.value === status)?.label || getDisplayName(status);
   };
   const getStatusColor = (status?: string) => {
@@ -388,9 +390,9 @@ export function OrderDetails() {
   if (!order) {
     return (
       <div className="text-center py-8">
-        <p className="text-slate-600 dark:text-slate-400">Order not found</p>
+        <p className="text-slate-600 dark:text-slate-400">{t('orders.notFound')}</p>
         <Button onClick={() => navigate('/orders')} className="mt-4">
-          Back to Orders
+          {t('orders.backToOrders')}
         </Button>
       </div>
     )
@@ -406,22 +408,22 @@ export function OrderDetails() {
               onClick={() => navigate('/orders')}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              {t('orders.back')}
             </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setShowBarcodeDialog(true)}>
               <Barcode className="h-4 w-4 mr-2" />
-              Show Barcode
+              {t('orders.showBarcode')}
             </Button>
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />
-              Yazdır
+              {t('orders.print')}
             </Button>
             {order.status === 'completed' && (
               <Button variant="outline" onClick={handleWarrantyPrint}>
                 <Shield className="h-4 w-4 mr-2" />
-                Garanti Yazdır
+                {t('orders.printWarranty')}
               </Button>
             )}
             <DropdownMenu>
@@ -430,19 +432,19 @@ export function OrderDetails() {
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700">
                 {order.status !== 'cancelled' && order.status !== 'completed' && (
                   <>
                     <DropdownMenuItem onClick={() => setShowStatusDialog(true)}>
-                      Update Status
+                      {t('orders.updateStatus')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowCancelDialog(true)}>
-                      Cancel Order
+                      {t('orders.cancelOrder')}
                     </DropdownMenuItem>
                   </>
                 )}
                 <DropdownMenuItem onClick={() => navigate(`/customers/${order.customerId._id}`)}>
-                  View Customer
+                  {t('orders.viewCustomer')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -451,47 +453,27 @@ export function OrderDetails() {
 
         {/* Order Summary */}
         <Card className="bg-blue-600 text-white border-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-4">
-              <CardTitle className="text-white">Sipariş Özeti</CardTitle>
-              <Badge className={cn(getStatusColor(order.status))}>{getStatusLabel(order.status)}</Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select
-                value={order.status === 'in progress' ? 'shipped' : order.status}
-                onValueChange={async (val) => {
-                  setSelectedStatus(val);
-                  setStatusNotes('');
-                  await handleStatusUpdateDirect(val);
-                }}
-                disabled={updating}
-              >
-                <SelectTrigger className="w-36">
-                  {updating ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600 mx-auto" />
-                  ) : (
-                    <SelectValue placeholder="Durum değiştir" />
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <CardHeader>
+            <CardTitle className="text-white">{t('orders.summary')}</CardTitle>
+            <CardDescription className="text-blue-100">{t('orders.summaryDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <p className="text-sm text-blue-100">Sipariş No</p>
-              <p className="font-medium text-white">{order.orderNumber || '-'}</p>
+            {/* Order Status Badge */}
+            <div className="col-span-2 flex items-center mb-2">
+              <Badge className={getStatusColor(order.status)}>
+                {getStatusLabel(order.status)}
+              </Badge>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-blue-100">Şube</p>
+              <p className="text-sm text-blue-100">{t('orders.orderNo')}</p>
+              <p className="font-medium text-white">{order.orderNumber || order.orderId || '-'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-blue-100">{t('orders.branch')}</p>
               <p className="font-medium text-white">{getDisplayName(order.branch?.name)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-blue-100">Oluşturulma</p>
+              <p className="text-sm text-blue-100">{t('orders.createdAt')}</p>
               <p className="font-medium text-white">{formatDate(order.createdAt)}</p>
             </div>
           </CardContent>
@@ -499,13 +481,13 @@ export function OrderDetails() {
 
         <Card className="bg-blue-600 text-white border-blue-500">
           <CardHeader>
-            <CardTitle className="text-white">Ürünler & Ödeme</CardTitle>
-            <CardDescription className="text-blue-100">Ürünler ve ödeme bilgileri</CardDescription>
+            <CardTitle className="text-white">{t('orders.productsAndPayment')}</CardTitle>
+            <CardDescription className="text-blue-100">{t('orders.productsAndPaymentDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Device Info */}
             <div className="mb-2">
-              <div className="font-semibold text-white">Cihaz</div>
+              <div className="font-semibold text-white">{t('orders.device')}</div>
               <div className="text-blue-100 text-sm">
                 {getDeviceTypeName(order.device?.deviceTypeId)} / {getBrandName(order.device?.brandId)} {getModelName(order.device?.modelId)}
               </div>
@@ -532,33 +514,33 @@ export function OrderDetails() {
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
-              <p className="font-medium text-white">Toplam Tutar</p>
+              <p className="font-medium text-white">{t('orders.totalAmount')}</p>
               <p className="text-lg font-semibold text-white">
                 {formatCurrency(order.payment.totalAmount ?? 0)}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Kapora</p>
+              <p className="text-sm text-blue-100">{t('orders.deposit')}</p>
               <p className="font-medium text-white">
                 {formatCurrency(order.payment.depositAmount ?? 0)}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Kalan</p>
+              <p className="text-sm text-blue-100">{t('orders.remaining')}</p>
               <p className="font-medium text-white">
                 {formatCurrency(order.payment.remainingAmount ?? 0)}
               </p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Merkez Ödeme Toplamı</p>
+              <p className="text-sm text-blue-100">{t('orders.totalCentralPayment')}</p>
               <p className="font-medium text-white">{order.totalCentralPayment !== undefined ? formatCurrency(order.totalCentralPayment) : '-'}</p>
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm text-blue-100">Şube Karı Toplamı</p>
+              <p className="text-sm text-blue-100">{t('orders.totalBranchProfit')}</p>
               <p className="font-medium text-white">{order.totalBranchProfit !== undefined ? formatCurrency(order.totalBranchProfit) : '-'}</p>
             </div>
           </CardContent>
@@ -566,12 +548,12 @@ export function OrderDetails() {
 
         <Card className="bg-blue-600 text-white border-blue-500">
           <CardHeader>
-            <CardTitle className="text-white">Müşteri Bilgileri</CardTitle>
-            <CardDescription className="text-blue-100">Müşteri ve ödünç cihaz bilgileri</CardDescription>
+            <CardTitle className="text-white">{t('orders.customerInfo')}</CardTitle>
+            <CardDescription className="text-blue-100">{t('orders.customerInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-medium text-white">Müşteri</h3>
+              <h3 className="font-medium text-white">{t('orders.customer')}</h3>
               <p className="text-blue-100">{getDisplayName(order.customerId.name)}</p>
               <p className="text-blue-100">{order.customerId.phone}</p>
               {order.customerId.email && (
@@ -592,7 +574,7 @@ export function OrderDetails() {
             {order.isLoanedDeviceGiven && (
               <Card className="bg-red-600 text-white border-red-500">
                 <CardHeader>
-                  <CardTitle className="text-white">Ödünç Cihaz</CardTitle>
+                  <CardTitle className="text-white">{t('orders.loanedDevice')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="font-medium">
@@ -606,8 +588,8 @@ export function OrderDetails() {
 
         <Card className="bg-amber-200 text-amber-900 border-amber-400">
           <CardHeader>
-            <CardTitle className="text-amber-900">Durum Geçmişi</CardTitle>
-            <CardDescription className="text-amber-800">Sipariş durum değişikliklerinin zaman çizelgesi</CardDescription>
+            <CardTitle className="text-amber-900">{t('orders.statusHistory')}</CardTitle>
+            <CardDescription className="text-amber-800">{t('orders.statusHistoryDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -633,7 +615,7 @@ export function OrderDetails() {
                       {formatDate(status.timestamp)}
                     </p>
                     <p className="text-sm text-amber-900">
-                      {status.user && (status.user.fullName || status.user.email) ? `${status.user.fullName || ''} ${status.user.email ? `<${status.user.email}>` : ''}` : 'Kullanıcı Bilgisi Yok'}
+                      {status.user && (status.user.fullName || status.user.email) ? `${status.user.fullName || ''} ${status.user.email ? `<${status.user.email}>` : ''}` : t('orders.noUserInfo')}
                     </p>
                     {status.notes && (
                       <p className="text-sm text-amber-800 mt-1">
@@ -803,15 +785,15 @@ export function OrderDetails() {
         <Dialog open={showBarcodeDialog} onOpenChange={setShowBarcodeDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Barkod</DialogTitle>
+              <DialogTitle>{t('orders.barcode')}</DialogTitle>
               <DialogDescription>
-                Siparişe hızlı erişmek için bu barkodu okutun
+                {t('orders.barcodeDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col items-center p-4 gap-2">
               <QRCodeSVG value={`${window.location.origin}/orders/${order._id}`} size={200} />
               <div className="mt-2 text-center">
-                <span className="block text-sm text-blue-100">Order No</span>
+                <span className="block text-sm text-blue-100">{t('orders.orderNo')}</span>
                 <span className="block text-lg font-bold text-blue-50">{order.orderNumber || '-'}</span>
               </div>
             </div>
@@ -822,17 +804,17 @@ export function OrderDetails() {
         <AlertDialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Update Order Status</AlertDialogTitle>
+              <AlertDialogTitle>{t('orders.updateStatus')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Select the new status and add any notes about the update
+                {t('orders.updateStatusDesc')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label>{t('orders.status')}</Label>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t('orders.selectStatus')} />
                   </SelectTrigger>
                   <SelectContent>
                     {statusOptions.map(opt => (
@@ -842,16 +824,16 @@ export function OrderDetails() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Notes</Label>
+                <Label>{t('orders.notes')}</Label>
                 <Textarea
                   value={statusNotes}
                   onChange={(e) => setStatusNotes(e.target.value)}
-                  placeholder="Add any notes about this status update..."
+                  placeholder={t('orders.statusNotesPlaceholder')}
                 />
               </div>
             </div>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleStatusUpdate}
                 disabled={!selectedStatus || updating}
@@ -860,10 +842,10 @@ export function OrderDetails() {
                 {updating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
+                    {t('orders.updating')}
                   </>
                 ) : (
-                  'Update Status'
+                  t('orders.updateStatus')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -874,13 +856,13 @@ export function OrderDetails() {
         <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+              <AlertDialogTitle>{t('orders.cancelOrder')}</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to cancel this order? This action cannot be undone.
+                {t('orders.cancelOrderDesc')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleCancel}
                 disabled={updating}
@@ -889,10 +871,10 @@ export function OrderDetails() {
                 {updating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Cancelling...
+                    {t('orders.cancelling')}
                   </>
                 ) : (
-                  'Yes, Cancel Order'
+                  t('orders.yesCancelOrder')
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

@@ -3,8 +3,11 @@ import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/formatters'
 import { DollarSign, TrendingUp, TrendingDown, CreditCard, Banknote, ArrowUpRight } from 'lucide-react'
 import { PageContainer } from '@/components/PageContainer'
+import { useTranslation } from 'react-i18next'
 
 export function Finances() {
+  const { t } = useTranslation();
+
   const monthlyStats = {
     totalRevenue: 45230.75,
     totalExpenses: 12450.30,
@@ -22,14 +25,14 @@ export function Finances() {
   ]
 
   return (
-    <PageContainer title="Finans Yönetimi" description="Gelir ve giderlerinizi takip edin.">
+    <PageContainer title={t('finances.title')} description={t('finances.description')}>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Finances
+            {t('finances.title')}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Track your revenue, expenses, and financial performance
+            {t('finances.subtitle')}
           </p>
         </div>
 
@@ -37,7 +40,7 @@ export function Finances() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('finances.totalRevenue')}</CardTitle>
               <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
@@ -46,14 +49,14 @@ export function Finances() {
               </div>
               <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +12.5% from last month
+                {t('finances.fromLastMonth', { value: '+12.5%' })}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('finances.netProfit')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
@@ -62,14 +65,14 @@ export function Finances() {
               </div>
               <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
-                +8.2% from last month
+                {t('finances.fromLastMonth', { value: '+8.2%' })}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('finances.pendingPayments')}</CardTitle>
               <CreditCard className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
@@ -77,14 +80,14 @@ export function Finances() {
                 {formatCurrency(monthlyStats.pendingPayments)}
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                From 8 orders
+                {t('finances.fromOrders', { count: 8 })}
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('finances.totalExpenses')}</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
@@ -93,14 +96,14 @@ export function Finances() {
               </div>
               <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +5.1% from last month
+                {t('finances.fromLastMonth', { value: '+5.1%' })}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('finances.completedOrders')}</CardTitle>
               <Banknote className="h-4 w-4 text-indigo-500" />
             </CardHeader>
             <CardContent>
@@ -108,14 +111,14 @@ export function Finances() {
                 {monthlyStats.completedTransactions}
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                This month
+                {t('finances.thisMonth')}
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Order Value</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('finances.avgOrderValue')}</CardTitle>
               <DollarSign className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
@@ -124,7 +127,7 @@ export function Finances() {
               </div>
               <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +3.7% from last month
+                {t('finances.fromLastMonth', { value: '+3.7%' })}
               </div>
             </CardContent>
           </Card>
@@ -133,8 +136,8 @@ export function Finances() {
         {/* Recent Transactions */}
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>Latest financial activity in your business</CardDescription>
+            <CardTitle>{t('finances.recentTransactions')}</CardTitle>
+            <CardDescription>{t('finances.latestActivity')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -173,7 +176,7 @@ export function Finances() {
                       {transaction.type === 'income' ? '+' : ''}{formatCurrency(Math.abs(transaction.amount))}
                     </p>
                     <Badge variant="outline" className="text-xs">
-                      {transaction.type}
+                      {t(`finances.${transaction.type}`)}
                     </Badge>
                   </div>
                 </div>

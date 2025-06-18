@@ -39,9 +39,12 @@ router.get('/', auth, async (req, res) => {
       
       matchConditions.$or = [
         { orderNumber: new RegExp(search, 'i') },
+        { orderId: new RegExp(search, 'i') },
         { customerId: { $in: customerIds } },
         { 'device.brand': new RegExp(search, 'i') },
-        { 'device.model': new RegExp(search, 'i') }
+        { 'device.model': new RegExp(search, 'i') },
+        { 'branch.name': new RegExp(search, 'i') },
+        { 'items.name': new RegExp(search, 'i') }
       ];
     }
 

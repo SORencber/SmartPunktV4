@@ -12,9 +12,11 @@ import {
   CheckCircle,
   AlertTriangle,
   TrendingUp,
-  Eye
+  Eye,
+  Wrench
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { useTranslation } from 'react-i18next'
 
 interface DashboardStats {
   totalOrders: number
@@ -23,6 +25,9 @@ interface DashboardStats {
   pendingOrders: number
   completedToday: number
   lowStockItems: number
+  totalRepairs?: number
+  pendingRepairs?: number
+  deliveredToday?: number
 }
 
 interface Order {
@@ -40,6 +45,7 @@ export function Dashboard() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const { enqueueSnackbar } = useSnackbar()
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -134,10 +140,10 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Dashboard
+            {t('dashboard.title')}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Welcome back! Here's what's happening with your repair business.
+            {t('dashboard.welcome')}
           </p>
         </div>
       </div>
@@ -146,7 +152,7 @@ export function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.totalOrders')}</CardTitle>
             <ShoppingCart className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
@@ -155,14 +161,14 @@ export function Dashboard() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +12% from last month
+              +12% {t('dashboard.fromLastMonth')}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -171,14 +177,14 @@ export function Dashboard() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +8% from last month
+              +8% {t('dashboard.fromLastMonth')}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.activeCustomers')}</CardTitle>
             <Users className="h-4 w-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
@@ -187,14 +193,14 @@ export function Dashboard() {
             </div>
             <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +5% from last month
+              +5% {t('dashboard.fromLastMonth')}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.pendingOrders')}</CardTitle>
             <Clock className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
@@ -202,14 +208,14 @@ export function Dashboard() {
               {stats?.pendingOrders}
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Requires attention
+              {t('dashboard.requiresAttention')}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.completedToday')}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -217,14 +223,14 @@ export function Dashboard() {
               {stats?.completedToday}
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Great progress!
+              {t('dashboard.greatProgress')}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.lowStockItems')}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -232,8 +238,44 @@ export function Dashboard() {
               {stats?.lowStockItems}
             </div>
             <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-              Need restocking
+              {t('dashboard.needRestocking')}
             </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t('dashboard.totalRepairs')}</CardTitle>
+            <Wrench className="h-4 w-4 text-blue-700" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {stats?.totalRepairs?.toLocaleString() ?? 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t('dashboard.pendingRepairs')}</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-700" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {stats?.pendingRepairs?.toLocaleString() ?? 0}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t('dashboard.deliveredToday')}</CardTitle>
+            <CheckCircle className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {stats?.deliveredToday?.toLocaleString() ?? 0}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -241,19 +283,19 @@ export function Dashboard() {
       {/* Recent Orders */}
       <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
         <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
-          <CardDescription>Latest repair orders from your customers</CardDescription>
+          <CardTitle>{t('dashboard.recentOrders')}</CardTitle>
+          <CardDescription>{t('dashboard.latestRepairOrders')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order No</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tutar</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tarih</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('dashboard.orderNo')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('dashboard.status')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('dashboard.customer')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('dashboard.total')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{t('dashboard.date')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-800">

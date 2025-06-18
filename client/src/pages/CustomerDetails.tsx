@@ -23,6 +23,7 @@ import { getOrders } from '@/api/orders'
 import dayjs from 'dayjs'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { CreateOrder } from './CreateOrder'
+import { useTranslation } from 'react-i18next'
 
 interface CustomerFormData {
   name: string
@@ -38,21 +39,8 @@ const formatAddress = (addr: any): string => {
   return [street, city, state, zipCode, country].filter(Boolean).join(', ');
 };
 
-// Sipariş durumu Türkçeleştirme fonksiyonu
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'pending': return 'Beklemede';
-    case 'in_progress': return 'İşlemde';
-    case 'completed': return 'Tamamlandı';
-    case 'cancelled': return 'İptal Edildi';
-    case 'delivered': return 'Teslim Edildi';
-    case 'waiting_for_parts': return 'Parça Bekliyor';
-    case 'awaiting_approval': return 'Onay Bekliyor';
-    default: return status || '-';
-  }
-}
-
 export default function CustomerDetails() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
@@ -156,19 +144,22 @@ export default function CustomerDetails() {
     )
   }
 
+  // Sipariş durumu çeviri fonksiyonu
+  const getStatusText = (status: string) => t(`orders.status.${status}`) || t(`orders.status.${status.toLowerCase()}`) || status || '-';
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-1">{customer.name}</h1>
-          <p className="text-muted-foreground text-lg">Müşteri Detayları</p>
+          <p className="text-muted-foreground text-lg">{t('customers.details')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => navigate('/customers')}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Geri
+            <ArrowLeft className="h-4 w-4 mr-2" /> {t('common.back')}
           </Button>
           <Button variant="secondary" onClick={() => document.getElementById('customer-edit-form')?.scrollIntoView({behavior:'smooth'})}>
-            <Save className="h-4 w-4 mr-2" /> Düzenle
+            <Save className="h-4 w-4 mr-2" /> {t('common.edit')}
           </Button>
           <Button
             variant="default"
@@ -177,24 +168,24 @@ export default function CustomerDetails() {
               setOrderModalOpen(true);
             }}
           >
-            Sipariş Ekle
+            {t('customers.addOrder')}
           </Button>
           <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogTrigger asChild>
               <Button variant="destructive">
-                <Trash2 className="h-4 w-4 mr-2" /> Sil
+                <Trash2 className="h-4 w-4 mr-2" /> {t('common.delete')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Müşteriyi Sil</AlertDialogTitle>
+                <AlertDialogTitle>{t('customers.deleteConfirmTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Bu müşteriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                  {t('customers.deleteConfirmDescription', { name: customer.name })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>İptal</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>Sil</AlertDialogAction>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -204,36 +195,36 @@ export default function CustomerDetails() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Müşteri Bilgileri Kartı */}
         <div className="bg-white rounded-lg shadow p-6" id="customer-edit-form">
-          <h2 className="text-xl font-semibold mb-4">Müşteri Bilgileri</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('customers.details')}</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <Label htmlFor="name">Ad Soyad *</Label>
+              <Label htmlFor="name">{t('customers.name')}</Label>
               <Input id="name" {...register("name", { required: "Ad Soyad zorunludur" })} placeholder="Ad Soyad" />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
             <div>
-              <Label htmlFor="phone">Telefon *</Label>
+              <Label htmlFor="phone">{t('customers.phone')}</Label>
               <Input id="phone" {...register("phone", { required: "Telefon zorunludur", pattern: { value: /^[0-9]{10,11}$/, message: "Geçerli bir telefon numarası giriniz" } })} placeholder="5XX XXX XX XX" />
               {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
             </div>
             <div>
-              <Label htmlFor="email">E-posta</Label>
+              <Label htmlFor="email">{t('customers.email')}</Label>
               <Input id="email" type="email" {...register("email", { pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: "Geçerli bir e-posta adresi giriniz" } })} placeholder="ornek@email.com" />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div>
-              <Label htmlFor="address">Adres</Label>
+              <Label htmlFor="address">{t('customers.address')}</Label>
               <Input id="address" value={typeof customer.address === 'object' ? formatAddress(customer.address) : (customer.address || '')} readOnly placeholder="Adres" />
             </div>
             {customer.createdBy && (
               <div>
-                <Label htmlFor="createdBy">Oluşturan Kullanıcı</Label>
+                <Label htmlFor="createdBy">{t('customers.createdBy')}</Label>
                 <Input id="createdBy" value={typeof customer.createdBy === 'object' && customer.createdBy !== null && 'fullName' in customer.createdBy ? ((customer.createdBy as any).fullName || '') : typeof customer.createdBy === 'string' ? customer.createdBy : ''} readOnly />
               </div>
             )}
             <div className="flex justify-end pt-2">
               <Button type="submit" variant="default">
-                <Save className="h-4 w-4 mr-2" /> Kaydet
+                <Save className="h-4 w-4 mr-2" /> {t('customers.save')}
               </Button>
             </div>
           </form>
@@ -242,7 +233,7 @@ export default function CustomerDetails() {
         {/* Siparişler Kartı */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Siparişler</h2>
+            <h2 className="text-xl font-semibold">{t('customers.orders')}</h2>
             <Button
               variant="default"
               onClick={() => {
@@ -250,7 +241,7 @@ export default function CustomerDetails() {
                 setOrderModalOpen(true);
               }}
             >
-              Sipariş Ekle
+              {t('customers.addOrder')}
             </Button>
           </div>
           {ordersLoading ? (
@@ -258,16 +249,16 @@ export default function CustomerDetails() {
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : orders.length === 0 ? (
-            <p className="text-gray-500">Bu müşteriye ait sipariş bulunamadı.</p>
+            <p className="text-gray-500">{t('customers.noOrders')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full border text-sm">
                 <thead>
                   <tr>
-                    <th className="border px-2 py-1">Sipariş No</th>
-                    <th className="border px-2 py-1">Durum</th>
-                    <th className="border px-2 py-1">Tutar</th>
-                    <th className="border px-2 py-1">Tarih</th>
+                    <th className="border px-2 py-1">{t('customers.orderId')}</th>
+                    <th className="border px-2 py-1">{t('customers.status')}</th>
+                    <th className="border px-2 py-1">{t('customers.totalAmount')}</th>
+                    <th className="border px-2 py-1">{t('customers.date')}</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -36,6 +36,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getDeviceTypes, DeviceType } from '@/api/deviceTypes';
 import { getParts, Part as ApiPart } from '@/api/parts';
+import { useTranslation } from 'react-i18next';
 
 interface Order {
   _id: string;
@@ -91,19 +92,21 @@ function getTotalServiceFee(orders: any[]) {
 export function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [branchFilter, setBranchFilter] = useState('all');
   const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { user } = useAuth();
-  const [branchFilter, setBranchFilter] = useState('all');
   const [branches, setBranches] = useState([] as Array<{ _id:string; name:string }>);
   const [brands, setBrands] = useState<any[]>([]);
   const [models, setModels] = useState<any[]>([]);
   const [statusUpdating, setStatusUpdating] = useState<Record<string, boolean>>({});
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [orderSortDirection, setOrderSortDirection] = useState<'asc' | 'desc'>('desc');
   const [orderToDelete, setOrderToDelete] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
@@ -114,7 +117,6 @@ export function Orders() {
     documentTitle: printOrder ? `Order-${printOrder.orderNumber}` : 'Order',
   });
   const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
   const [selectedShippedOrderIds, setSelectedShippedOrderIds] = useState<string[]>([]);
   const [showBulkInvoice, setShowBulkInvoice] = useState(false);
   const bulkInvoiceRef = useRef<HTMLDivElement>(null);
@@ -125,12 +127,66 @@ export function Orders() {
   const [readyToPrint, setReadyToPrint] = useState(false);
   const [parts, setParts] = useState<ApiPart[]>([]);
 
+  // 1. Tüm veriler: orders
+  // 2. Arama ve filtreleme
+  const filteredOrders = orders.filter(order => {
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) return true;
+
+    // Tarih stringini güvenli şekilde al
+    let createdAtStr = '';
+    try {
+      createdAtStr = order.createdAt ? formatDate(order.createdAt).toLowerCase() : '';
+    } catch {
+      createdAtStr = '';
+    }
+
+    return (
+      (order.orderNumber && order.orderNumber.toLowerCase().includes(search)) ||
+      (order.orderId && order.orderId.toLowerCase().includes(search)) ||
+      (order.customerId?.name && order.customerId.name.toLowerCase().includes(search)) ||
+      (order.customerId?.phone && order.customerId.phone.toLowerCase().includes(search)) ||
+      (order.branch?.name && order.branch.name.toLowerCase().includes(search)) ||
+      (order.device?.brand && order.device.brand.toLowerCase().includes(search)) ||
+      (order.device?.model && order.device.model.toLowerCase().includes(search)) ||
+      (order.items && order.items.some(item =>
+        (getDisplayNameDe(item.name).toLowerCase().includes(search)) ||
+        (item.quantity !== undefined && String(item.quantity).toLowerCase().includes(search))
+      )) ||
+      (order.status && t(`orders.status.${order.status}`).toLowerCase().includes(search)) ||
+      (createdAtStr && createdAtStr.includes(search)) ||
+      (order.payment?.amount !== undefined && String(order.payment.amount).toLowerCase().includes(search)) ||
+      (order.payment?.totalAmount !== undefined && String(order.payment.totalAmount).toLowerCase().includes(search))
+    );
+  });
+
+  // 3. Sayfalama
+  const pagedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // 4. Tablo sadece pagedOrders ile render edilir
+  // shippedOrders ve nonShippedOrders da pagedOrders üzerinden alınır
+  const shippedOrders = pagedOrders.filter(order => order.status === 'shipped');
+  const nonShippedOrders = pagedOrders.filter(order => order.status !== 'shipped');
+
+  // 5. Arama, filtre veya pageSize değiştiğinde currentPage = 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, branchFilter, pageSize]);
+
+  // 6. Toplam sayfa sayısı güncelle
+  useEffect(() => {
+    setTotalPages(Math.max(1, Math.ceil(filteredOrders.length / pageSize)));
+    if ((currentPage - 1) * pageSize >= filteredOrders.length && currentPage > 1) {
+      setCurrentPage(1);
+    }
+  }, [filteredOrders, pageSize]);
+
+  // API'den verileri sadece bir defa veya filtre değişince çek
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const response = await (getOrders as any)({ search: searchTerm, status: statusFilter, branch: branchFilter, page: currentPage, limit: pageSize });
+      const response = await (getOrders as any)({ status: statusFilter, branch: branchFilter, limit: 10000 });
       setOrders(response.orders);
-      setTotalPages(response.totalPages || 1);
     } catch (error) {
       console.error('Failed to load orders:', error);
       enqueueSnackbar('Failed to load orders', { variant: 'error' });
@@ -138,6 +194,15 @@ export function Orders() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadOrders();
+  }, [statusFilter, branchFilter]);
+
+  // currentPage değişince scroll başa al (isteğe bağlı)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   const handleCancelClick = (orderId: string) => {
     setOrderToCancel(orderId);
@@ -174,10 +239,6 @@ export function Orders() {
   };
 
   useEffect(() => {
-    loadOrders();
-  }, [searchTerm, statusFilter, branchFilter, currentPage, pageSize]);
-
-  useEffect(() => {
     const fetchBranches = async () => {
       if (user?.role !== 'admin') return;
       try {
@@ -196,10 +257,6 @@ export function Orders() {
     getDeviceTypes().then(res => setDeviceTypes(res.data));
     getParts().then(res => setParts(res.data));
   }, []);
-
-  useEffect(() => {
-    if (currentPage !== 1) setCurrentPage(1);
-  }, [pageSize, statusFilter, branchFilter, searchTerm]);
 
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
@@ -258,21 +315,18 @@ export function Orders() {
     );
   }
 
-  const shippedOrders = orders.filter(order => order.status === 'shipped');
-  const nonShippedOrders = orders.filter(order => order.status !== 'shipped');
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          Siparişler
+          {t('orders.title')}
         </h1>
         <Button
           onClick={() => navigate('/orders/create')}
           className="w-full sm:w-auto bg-white text-blue-700 border border-blue-600 hover:bg-blue-50 shadow font-semibold"
         >
           <Plus className="h-4 w-4 mr-2 text-blue-700" />
-          Yeni Sipariş Oluştur
+          {t('orders.create')}
         </Button>
       </div>
 
@@ -280,7 +334,7 @@ export function Orders() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
           <Input
-            placeholder="Siparişleri arama..."
+            placeholder={t('orders.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -289,15 +343,15 @@ export function Orders() {
         <div className="w-full sm:w-40">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Durum filtresi" />
+              <SelectValue placeholder={t('orders.statusFilterPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tüm Durumlar</SelectItem>
-              <SelectItem value="pending">Beklemede</SelectItem>
-              <SelectItem value="shipped">Kargoda</SelectItem>
-              <SelectItem value="delivered">Kargo Alındı</SelectItem>
-              <SelectItem value="completed">Tamamlandı</SelectItem>
-              <SelectItem value="cancelled">İptal</SelectItem>
+              <SelectItem value="all">{t('orders.allStatuses')}</SelectItem>
+              <SelectItem value="pending">{t('orders.status.pending')}</SelectItem>
+              <SelectItem value="shipped">{t('orders.status.shipped')}</SelectItem>
+              <SelectItem value="delivered">{t('orders.status.delivered')}</SelectItem>
+              <SelectItem value="completed">{t('orders.status.completed')}</SelectItem>
+              <SelectItem value="cancelled">{t('orders.status.cancelled')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -305,10 +359,10 @@ export function Orders() {
           <div className="w-full sm:w-48">
             <Select value={branchFilter} onValueChange={setBranchFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="Şube filtresi" />
+                <SelectValue placeholder={t('orders.branchFilterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tüm Şubeler</SelectItem>
+                <SelectItem value="all">{t('orders.allBranches')}</SelectItem>
                 {branches.map(b => {
                   const branchId = typeof (b as any)._id === 'string' ? (b as any)._id : ((b as any)._id && typeof (b as any)._id === 'object' && 'oid' in (b as any)._id ? (b as any)._id.oid : b.name);
                   return (
@@ -320,7 +374,7 @@ export function Orders() {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <span>Sayfa başına:</span>
+          <span>{t('orders.pagePerPage')}</span>
           <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
             <SelectTrigger className="w-20">
               <SelectValue />
@@ -336,15 +390,15 @@ export function Orders() {
 
       {/* Toplam sipariş sayısı */}
       <div className="text-sm text-slate-500">
-        Toplam {orders.length + shippedOrders.length} sipariş var
+        {t('orders.totalOrders', { total: filteredOrders.length })}
       </div>
 
       {/* Kargoda Olan Siparişler Tablosu */}
       {shippedOrders.length > 0 && (
         <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
           <CardHeader>
-            <CardTitle>Kargoda Olan Siparişler</CardTitle>
-            <CardDescription>Kargoya verilmiş siparişler burada listelenir</CardDescription>
+            <CardTitle>{t('orders.shippedOrdersTitle')}</CardTitle>
+            <CardDescription>{t('orders.shippedOrdersDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -352,15 +406,15 @@ export function Orders() {
                 <thead>
                   <tr className="bg-orange-100 dark:bg-orange-900">
                     <th className="px-3 py-2 text-left"><input type="checkbox" checked={selectedShippedOrderIds.length === shippedOrders.length} onChange={e => setSelectedShippedOrderIds(e.target.checked ? shippedOrders.map(o => o._id) : [])} /></th>
-                    <th className="px-3 py-2 text-left">Sipariş Tarihi</th>
-                    <th className="px-3 py-2 text-left">Sipariş No</th>
-                    <th className="px-3 py-2 text-left">Şube</th>
-                    <th className="px-3 py-2 text-left">Marka</th>
-                    <th className="px-3 py-2 text-left">Model</th>
-                    <th className="px-3 py-2 text-left">Parça (Adet)</th>
-                    <th className="px-3 py-2 text-left">Durum</th>
-                    <th className="px-3 py-2 text-left">Tutar</th>
-                    <th className="px-3 py-2 text-left">İşlemler</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.createdAt')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.orderNo')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.branch')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.brand')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.model')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.parts')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.status')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.amount')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -416,46 +470,19 @@ export function Orders() {
                             : '-'}
                         </td>
                         <td className="px-3 py-2">
-                          <Select
-                            value={order.status}
-                            disabled={!!statusUpdating[order._id]}
-                            onValueChange={async (newStatus) => {
-                              setStatusUpdating((prev) => ({ ...prev, [order._id]: true }));
-                              try {
-                                await updateOrderStatus(order._id, { status: newStatus });
-                                setOrders(prevOrders =>
-                                  prevOrders.map(o =>
-                                    o._id === order._id ? { ...o, status: newStatus } : o
-                                  )
-                                );
-                              } finally {
-                                setStatusUpdating((prev) => ({ ...prev, [order._id]: false }));
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Beklemede</SelectItem>
-                              <SelectItem value="shipped">Kargoda</SelectItem>
-                              <SelectItem value="delivered">Kargo Alındı</SelectItem>
-                              <SelectItem value="completed">Tamamlandı</SelectItem>
-                              <SelectItem value="cancelled">İptal</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <span>{t(`orders.status.${order.status}`)}</span>
                         </td>
                         <td className="px-3 py-2">
                           {order.totalCentralPayment ? `${formatCurrency(order.totalCentralPayment)}` : '-'}
                         </td>
                         <td className="px-3 py-2 flex gap-2 items-center">
-                          <Button size="icon" variant="outline" title="Göster" onClick={() => navigate(`/orders/${order._id}`)}>
+                          <Button size="icon" variant="outline" title={t('orders.view')} onClick={() => navigate(`/orders/${order._id}`)}>
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="destructive" title="Sil" onClick={() => setOrderToDelete(order)} disabled={deleting}>
+                          <Button size="icon" variant="destructive" title={t('orders.delete')} onClick={() => setOrderToDelete(order)} disabled={deleting}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="outline" title="Yazdır" onClick={() => setPrintOrder(order)}>
+                          <Button size="icon" variant="outline" title={t('orders.print')} onClick={() => setPrintOrder(order)}>
                             <Printer className="w-4 h-4" />
                           </Button>
                         </td>
@@ -473,7 +500,7 @@ export function Orders() {
                 disabled={selectedShippedOrderIds.length === 0}
                 onClick={() => setShowBulkInvoice(true)}
               >
-                <Printer className="w-4 h-4 mr-2" /> Fatura Yazdır
+                <Printer className="w-4 h-4 mr-2" /> {t('orders.printBulkInvoice')}
               </Button>
             </div>
           </CardContent>
@@ -483,13 +510,13 @@ export function Orders() {
       {/* Ana Siparişler Tablosu (Kargoda olmayanlar) */}
       <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-slate-200/50 dark:border-slate-700/50">
         <CardHeader>
-          <CardTitle>Tüm Siparişler</CardTitle>
-          <CardDescription>Siparişleri yönetin ve izleyin</CardDescription>
+          <CardTitle>{t('orders.allOrdersTitle')}</CardTitle>
+          <CardDescription>{t('orders.allOrdersDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           {nonShippedOrders.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-slate-600 dark:text-slate-400">Sipariş bulunamadı</p>
+              <p className="text-slate-600 dark:text-slate-400">{t('orders.noOrdersFound')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -497,16 +524,16 @@ export function Orders() {
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-700">
                     <th className="px-3 py-2 text-left cursor-pointer select-none" onClick={() => setOrderSortDirection(d => d === 'asc' ? 'desc' : 'asc')}>
-                      Sipariş Tarihi {orderSortDirection === 'asc' ? '▲' : '▼'}
+                      {t('orders.table.createdAt')} {orderSortDirection === 'asc' ? '▲' : '▼'}
                     </th>
-                    <th className="px-3 py-2 text-left">Sipariş No</th>
-                    <th className="px-3 py-2 text-left">Şube</th>
-                    <th className="px-3 py-2 text-left">Marka</th>
-                    <th className="px-3 py-2 text-left">Model</th>
-                    <th className="px-3 py-2 text-left">Parça (Adet)</th>
-                    <th className="px-3 py-2 text-left">Durum</th>
-                    <th className="px-3 py-2 text-left">Tutar</th>
-                    <th className="px-3 py-2 text-left">İşlemler</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.orderNo')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.branch')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.brand')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.model')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.parts')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.status')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.amount')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -549,47 +576,20 @@ export function Orders() {
                             : '-'}
                         </td>
                         <td className="px-3 py-2">
-                          <Select
-                            value={order.status}
-                            disabled={!!statusUpdating[order._id]}
-                            onValueChange={async (newStatus) => {
-                              setStatusUpdating((prev) => ({ ...prev, [order._id]: true }));
-                              try {
-                                await updateOrderStatus(order._id, { status: newStatus });
-                                setOrders(prevOrders =>
-                                  prevOrders.map(o =>
-                                    o._id === order._id ? { ...o, status: newStatus } : o
-                                  )
-                                );
-                              } finally {
-                                setStatusUpdating((prev) => ({ ...prev, [order._id]: false }));
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Beklemede</SelectItem>
-                              <SelectItem value="shipped">Kargoda</SelectItem>
-                              <SelectItem value="delivered">Kargo Alındı</SelectItem>
-                              <SelectItem value="completed">Tamamlandı</SelectItem>
-                              <SelectItem value="cancelled">İptal</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <span>{t(`orders.status.${order.status}`)}</span>
                         </td>
                         <td className="px-3 py-2">
                           {order.totalCentralPayment ? `${formatCurrency(order.totalCentralPayment)}` : '-'}
                         </td>
                         <td className="px-3 py-2 flex gap-2 items-center">
-                          <Button size="icon" variant="outline" title="Göster" onClick={() => navigate(`/orders/${order._id}`)}>
+                          <Button size="icon" variant="outline" title={t('orders.view')} onClick={() => navigate(`/orders/${order._id}`)}>
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="destructive" title="Sil" onClick={() => setOrderToDelete(order)} disabled={deleting}>
+                          <Button size="icon" variant="destructive" title={t('orders.delete')} onClick={() => setOrderToDelete(order)} disabled={deleting}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                           {order.status === 'shipped' && (
-                            <Button size="icon" variant="outline" title="Yazdır" onClick={() => setPrintOrder(order)}>
+                            <Button size="icon" variant="outline" title={t('orders.print')} onClick={() => setPrintOrder(order)}>
                               <Printer className="w-4 h-4" />
                             </Button>
                           )}
@@ -605,23 +605,27 @@ export function Orders() {
       </Card>
 
       <div className="flex items-center justify-between mt-4">
-        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p-1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">Önceki</button>
-        <span>Sayfa {currentPage} / {totalPages}</span>
-        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p+1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">Sonraki</button>
+        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p-1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">
+          {t('orders.previous')}
+        </button>
+        <span>{t('orders.page', { current: currentPage, total: totalPages })}</span>
+        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p+1)} className="px-3 py-1 rounded bg-slate-200 disabled:opacity-50">
+          {t('orders.next')}
+        </button>
       </div>
 
       <AlertDialog open={!!orderToCancel} onOpenChange={() => setOrderToCancel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sipariş İptal</AlertDialogTitle>
+            <AlertDialogTitle>{t('orders.cancelOrderTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu siparişi iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              {t('orders.cancelOrderDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogCancel>{t('orders.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelConfirm} className="bg-red-600 hover:bg-red-700">
-              Evet, Sipariş İptal
+              {t('orders.confirmCancel')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -630,16 +634,16 @@ export function Orders() {
       <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Siparişi Sil</AlertDialogTitle>
+            <AlertDialogTitle>{t('orders.deleteOrderTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu siparişi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+              {t('orders.deleteOrderDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleDeleteOrder} disabled={deleting} className="bg-red-600 hover:bg-red-700">
-              {deleting ? 'Siliniyor...' : 'Evet, Sil'}
+              {deleting ? t('orders.deleting') : t('orders.confirmDelete')}
             </AlertDialogAction>
-            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogCancel>{t('orders.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -651,13 +655,13 @@ export function Orders() {
             <>
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <div className="font-bold text-lg">Sipariş No</div>
+                  <div className="font-bold text-lg">{t('orders.orderNo')}</div>
                   <div className="text-xl">{printOrder.orderId}</div>
                 </div>
                 <QRCodeSVG value={printOrder.orderId} size={64} />
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Cihaz Tipi:</span> {(() => {
+                <span className="font-semibold">{t('orders.deviceType')}:</span> {(() => {
                   const device = printOrder.device || {};
                   let deviceTypeName = '-';
                   if (device.deviceType) {
@@ -687,7 +691,7 @@ export function Orders() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Marka:</span> {(() => {
+                <span className="font-semibold">{t('orders.brand')}:</span> {(() => {
                   const device = printOrder.device || {};
                   let brandName = '-';
                   if (device.brandId) {
@@ -699,7 +703,7 @@ export function Orders() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Model:</span> {(() => {
+                <span className="font-semibold">{t('orders.model')}:</span> {(() => {
                   const device = printOrder.device || {};
                   let modelName = '-';
                   if (device.modelId) {
@@ -711,9 +715,9 @@ export function Orders() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Parçalar:</span>
+                <span className="font-semibold">{t('orders.parts')}:</span>
                 <ul className="list-disc ml-6">
-                  {printOrder.items && printOrder.items.length > 0 ? (
+                  {printOrder?.items && printOrder.items.length > 0 ? (
                     printOrder.items.map((item, idx) => (
                       <li key={idx}>{item.name} x {item.quantity}</li>
                     ))
@@ -730,14 +734,14 @@ export function Orders() {
       <Dialog open={!!printOrder} onOpenChange={() => setPrintOrder(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Sipariş Yazdır</DialogTitle>
+            <DialogTitle>{t('orders.printOrderTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Preview only, not for printing */}
             <div className="bg-white p-4 rounded shadow">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <div className="font-bold text-lg">Sipariş No</div>
+                  <div className="font-bold text-lg">{t('orders.orderNo')}</div>
                   <div className="text-xl">{printOrder?.orderId}</div>
                 </div>
                 {printOrder && (
@@ -745,7 +749,7 @@ export function Orders() {
                 )}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Cihaz Tipi:</span> {(() => {
+                <span className="font-semibold">{t('orders.deviceType')}:</span> {(() => {
                   if (!printOrder) return '-';
                   const device = printOrder.device || {};
                   let deviceTypeName = '-';
@@ -776,7 +780,7 @@ export function Orders() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Marka:</span> {(() => {
+                <span className="font-semibold">{t('orders.brand')}:</span> {(() => {
                   if (!printOrder) return '-';
                   const device = printOrder.device || {};
                   let brandName = '-';
@@ -789,7 +793,7 @@ export function Orders() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Model:</span> {(() => {
+                <span className="font-semibold">{t('orders.model')}:</span> {(() => {
                   if (!printOrder) return '-';
                   const device = printOrder.device || {};
                   let modelName = '-';
@@ -802,7 +806,7 @@ export function Orders() {
                 })()}
               </div>
               <div className="mb-2">
-                <span className="font-semibold">Parçalar:</span>
+                <span className="font-semibold">{t('orders.parts')}:</span>
                 <ul className="list-disc ml-6">
                   {printOrder?.items && printOrder.items.length > 0 ? (
                     printOrder.items.map((item, idx) => (
@@ -815,7 +819,7 @@ export function Orders() {
               </div>
             </div>
             <Button onClick={() => printOrder && handlePrint()} className="w-full" variant="outline" disabled={!printOrder}>
-              <Printer className="w-4 h-4 mr-2" /> Yazıcıya Gönder
+              <Printer className="w-4 h-4 mr-2" /> {t('orders.printToPrinter')}
             </Button>
           </div>
         </DialogContent>
@@ -829,29 +833,29 @@ export function Orders() {
               <div className="flex items-center mb-8">
                 <img src="/logo192.png" alt="Logo" style={{ height: 64, marginRight: 24 }} />
                 <div>
-                  <h2 className="text-2xl font-bold">RECHNUNG</h2>
-                  <div className="text-sm text-gray-600">Smart Punkt GmbH</div>
-                  <div className="text-xs text-gray-400">Erbprinzenstr. 21, 76133 Karlsruhe, Deutschland</div>
+                  <h2 className="text-2xl font-bold">{t('orders.bulkInvoiceTitle')}</h2>
+                  <div className="text-sm text-gray-600">{t('orders.bulkInvoiceSubtitle')}</div>
+                  <div className="text-xs text-gray-400">{t('orders.bulkInvoiceAddress')}</div>
                 </div>
               </div>
               <div className="mb-4 text-sm text-gray-700">
-                Datum: {new Date().toLocaleDateString('de-DE')}
+                {t('orders.bulkInvoiceDate')} {new Date().toLocaleDateString('de-DE')}
               </div>
               {/* Parçalar Tablosu */}
               <table className="min-w-full text-sm border rounded-xl bg-white mb-8" style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead>
                   <tr className="bg-blue-100">
-                    <th className="px-3 py-2 text-left border">Teil</th>
-                    <th className="px-3 py-2 text-left border">Stückpreis (€)</th>
-                    <th className="px-3 py-2 text-left border">Menge</th>
-                    <th className="px-3 py-2 text-left border">Gesamt (€)</th>
+                    <th className="px-3 py-2 text-left border">{t('orders.bulkInvoice.part')}</th>
+                    <th className="px-3 py-2 text-left border">{t('orders.bulkInvoice.unitPrice')}</th>
+                    <th className="px-3 py-2 text-left border">{t('orders.bulkInvoice.quantity')}</th>
+                    <th className="px-3 py-2 text-left border">{t('orders.bulkInvoice.total')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
                     // Seçili siparişlerdeki tüm parçaları partId'ye göre grupla
                     const partMap = new Map();
-                    const selectedOrders = orders.filter(o => selectedShippedOrderIds.includes(o._id));
+                    const selectedOrders = filteredOrders.filter(o => selectedShippedOrderIds.includes(o._id));
                     selectedOrders.forEach(order => {
                       (order.items || []).forEach(item => {
                         const key = item.partId || getDisplayNameDe(item.name); // partId varsa onunla, yoksa isimle grupla
@@ -885,7 +889,7 @@ export function Orders() {
                         const branchName = order.branchSnapshot?.name || order.branch?.name || '-';
                         return (
                           <tr key={"servicefee-"+order._id}>
-                            <td className="px-3 py-2 border" colSpan={2}><b>Technische Servicegebühr ({branchName})</b></td>
+                            <td className="px-3 py-2 border" colSpan={2}><b>{t('orders.bulkInvoice.serviceFee', { branch: branchName })}</b></td>
                             <td className="px-3 py-2 border text-center">1</td>
                             <td className="px-3 py-2 border">{order.serviceFee.toFixed(2)}</td>
                           </tr>
@@ -895,12 +899,12 @@ export function Orders() {
                   })()}
                   {/* Teknik servis ücreti satırı */}
                   {(() => {
-                    const selectedOrders = orders.filter(o => selectedShippedOrderIds.includes(o._id));
+                    const selectedOrders = filteredOrders.filter(o => selectedShippedOrderIds.includes(o._id));
                     const totalServiceFee = getTotalServiceFee(selectedOrders);
                     if (totalServiceFee > 0) {
                       return (
                         <tr>
-                          <td className="px-3 py-2 border" colSpan={2}><b>Technische Servicegebühr</b></td>
+                          <td className="px-3 py-2 border" colSpan={2}><b>{t('orders.bulkInvoice.totalServiceFee')}</b></td>
                           <td className="px-3 py-2 border text-center">1</td>
                           <td className="px-3 py-2 border">{totalServiceFee.toFixed(2)}</td>
                         </tr>
@@ -911,10 +915,10 @@ export function Orders() {
                 </tbody>
               </table>
               <div className="text-right font-bold text-lg mt-4">
-                Gesamtsumme: € {(() => {
+                {t('orders.bulkInvoice.totalAmount')} € {(() => {
                   // Toplam fiyatı hesapla
                   const partMap = new Map();
-                  const selectedOrders = orders.filter(o => selectedShippedOrderIds.includes(o._id));
+                  const selectedOrders = filteredOrders.filter(o => selectedShippedOrderIds.includes(o._id));
                   selectedOrders.forEach(order => {
                     (order.items || []).forEach(item => {
                       const key = item.partId || getDisplayNameDe(item.name);

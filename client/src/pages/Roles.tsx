@@ -28,6 +28,7 @@ import { useForm } from "react-hook-form"
 import { api } from "@/api/api"
 import { PageContainer } from '@/components/PageContainer'
 import { MODULES, ACTIONS } from '../constants/permissions'
+import { useTranslation } from 'react-i18next'
 
 interface Permission {
   module: string;
@@ -64,6 +65,7 @@ export default function Roles() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
+  const { t } = useTranslation()
 
   const { register: registerCreate, handleSubmit: handleCreateSubmit, reset: resetCreate, formState: { errors: createErrors } } = useForm<RoleForm>({
     defaultValues: {
@@ -255,32 +257,32 @@ export default function Roles() {
   }
 
   return (
-    <PageContainer title="Rol Yönetimi" description="Kullanıcı rolleri ve yetkilerini yönetin.">
+    <PageContainer title={t('roles.title')} description={t('roles.description')}>
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Role Management</h1>
+        <h1 className="text-3xl font-bold">{t('roles.title')}</h1>
         {currentUser?.role === "admin" && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Role
+                {t('roles.add')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Role</DialogTitle>
+                <DialogTitle>{t('roles.createTitle')}</DialogTitle>
                 <DialogDescription>
-                  Create a new role with specific permissions.
+                  {t('roles.createDesc')}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Role Name</Label>
+                    <Label htmlFor="name">{t('roles.form.name')}</Label>
                     <Input
                       id="name"
-                      {...registerCreate("name", { required: "Role name is required" })}
+                      {...registerCreate("name", { required: t('roles.form.nameRequired') })}
                     />
                     {createErrors.name && (
                       <p className="text-sm text-red-500">{createErrors.name.message}</p>
@@ -288,7 +290,7 @@ export default function Roles() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">{t('roles.form.description')}</Label>
                     <Input
                       id="description"
                       {...registerCreate("description")}
@@ -297,11 +299,11 @@ export default function Roles() {
                 </div>
 
                 <div className="space-y-4">
-                  <Label>Permissions</Label>
+                  <Label>{t('roles.form.permissions')}</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {MODULES.map((module) => (
                       <div key={module.id} className="space-y-2 p-3 border rounded-lg">
-                        <div className="font-medium">{module.label}</div>
+                        <div className="font-medium">{t(`roles.modules.${module.id}`)}</div>
                         <div className="grid grid-cols-2 gap-2">
                           {ACTIONS.map((action) => (
                             <label key={action.id} className="flex items-center space-x-2 text-sm">
@@ -311,7 +313,7 @@ export default function Roles() {
                                 value={action.id}
                                 className="rounded border-gray-300"
                               />
-                              <span>{action.label}</span>
+                              <span>{t(`roles.actions.${action.id}`)}</span>
                             </label>
                           ))}
                         </div>
@@ -326,9 +328,9 @@ export default function Roles() {
                     variant="outline"
                     onClick={() => setIsCreateDialogOpen(false)}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
-                  <Button type="submit">Create Role</Button>
+                  <Button type="submit">{t('roles.create')}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -340,18 +342,18 @@ export default function Roles() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Role</DialogTitle>
+            <DialogTitle>{t('roles.editTitle')}</DialogTitle>
             <DialogDescription>
-              Update role information and permissions.
+              {t('roles.editDesc')}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit(onEditSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Role Name</Label>
+                <Label htmlFor="edit-name">{t('roles.form.name')}</Label>
                 <Input
                   id="edit-name"
-                  {...registerEdit("name", { required: "Role name is required" })}
+                  {...registerEdit("name", { required: t('roles.form.nameRequired') })}
                 />
                 {editErrors.name && (
                   <p className="text-sm text-red-500">{editErrors.name.message}</p>
@@ -359,7 +361,7 @@ export default function Roles() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-description">Description</Label>
+                <Label htmlFor="edit-description">{t('roles.form.description')}</Label>
                 <Input
                   id="edit-description"
                   {...registerEdit("description")}
@@ -368,11 +370,11 @@ export default function Roles() {
             </div>
 
             <div className="space-y-4">
-              <Label>Permissions</Label>
+              <Label>{t('roles.form.permissions')}</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {MODULES.map((module) => (
                   <div key={module.id} className="space-y-2 p-3 border rounded-lg">
-                    <div className="font-medium">{module.label}</div>
+                    <div className="font-medium">{t(`roles.modules.${module.id}`)}</div>
                     <div className="grid grid-cols-2 gap-2">
                       {ACTIONS.map((action) => (
                         <label key={action.id} className="flex items-center space-x-2 text-sm">
@@ -385,7 +387,7 @@ export default function Roles() {
                               p => p.module === module.id && p.actions.includes(action.id)
                             )}
                           />
-                          <span>{action.label}</span>
+                          <span>{t(`roles.actions.${action.id}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -400,9 +402,9 @@ export default function Roles() {
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button type="submit">Update Role</Button>
+              <Button type="submit">{t('roles.update')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -410,14 +412,14 @@ export default function Roles() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Roles</CardTitle>
+          <CardTitle>{t('roles.listTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search roles..."
+                placeholder={t('roles.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -429,12 +431,12 @@ export default function Roles() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t('roles.table.name')}</TableHead>
+                  <TableHead>{t('roles.table.description')}</TableHead>
+                  <TableHead>{t('roles.table.status')}</TableHead>
+                  <TableHead>{t('roles.table.type')}</TableHead>
+                  <TableHead>{t('roles.table.createdAt')}</TableHead>
+                  <TableHead>{t('roles.table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -459,7 +461,7 @@ export default function Roles() {
                     </TableCell>
                     <TableCell>
                       <Badge variant={role.isSystem ? "default" : "secondary"}>
-                        {role.isSystem ? "System" : "Custom"}
+                        {role.isSystem ? t('roles.system') : t('roles.custom')}
                       </Badge>
                     </TableCell>
                     <TableCell>
