@@ -1,0 +1,43 @@
+{
+  "orders": {
+    "table": {
+      "id": "Bestellnummer",
+      "customer": "Kunde",
+      "device": "Gerät",
+      "status": "Status",
+      "amount": "Betrag",
+      "actions": "Aktionen",
+      "invoiceStatus": "Rechnungsstatus",
+      "date": "Datum",
+      "branch": "Filiale",
+      "type": "Typ",
+      "createdAt": "Bestelldatum",
+      "orderNo": "Bestellnummer",
+      "brand": "Marke",
+      "model": "Modell",
+      "parts": "Teil (Menge)"
+    },
+    "deviceType": "Gerätetyp",
+    "printOrderTitle": "Bestellung drucken",
+    "edit": "Bearbeiten",
+    "invoiceUpdateError": "Fehler beim Aktualisieren des Rechnungsstatus",
+    "invoiced": "Abgerechnet",
+    "markAsInvoiced": "Abrechnen",
+    "invoicedAt": "Rechnungsdatum",
+    "selectStatus": "Status auswählen",
+    "updating": "Wird aktualisiert...",
+    "updateStatusDesc": "Wählen Sie den neuen Status und fügen Sie ggf. Anmerkungen hinzu",
+    "cancelling": "Wird storniert...",
+    "cancelOrderDesc": "Möchten Sie diese Bestellung wirklich stornieren? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "yesCancelOrder": "Ja, Bestellung stornieren",
+    "invoice": {
+      "status": {
+        "title": "Rechnungsstatus",
+        "invoiced": "Abgerechnet",
+        "notInvoiced": "Nicht Abgerechnet"
+      },
+      "markAsInvoiced": "Abrechnen",
+      "markAsNotInvoiced": "Als Nicht Abgerechnet Markieren"
+    }
+  }
+} 

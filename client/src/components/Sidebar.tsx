@@ -16,6 +16,10 @@ import {
   Building2,
   LucideIcon,
   Settings,
+  Home,
+  ShoppingBag,
+  FileText,
+  Receipt,
 } from "lucide-react"
 import { hasPermission } from '@/utils/permissions'
 import { useEffect, useState } from 'react';
@@ -38,6 +42,7 @@ export const navigation: (NavItem | NavGroup)[] = [
   { title: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "customers", href: "/customers", icon: Users },
   { title: "orders", href: "/orders", icon: ShoppingCart },
+  { title: "invoices", href: "/invoices", icon: Receipt },
   { title: "catalog", href: "/catalog", icon: BookOpen },
   { title: "products", href: "/products", icon: Package },
   { title: "inventory", href: "/inventory", icon: Package },
@@ -72,7 +77,7 @@ export const navigation: (NavItem | NavGroup)[] = [
         icon: Settings,
       },
     ],
-  },
+  }
 ]
 
 export function Sidebar() {

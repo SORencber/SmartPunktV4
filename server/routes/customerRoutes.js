@@ -135,8 +135,19 @@ router.get('/:id', protect, validateObjectId, async (req, res) => {
 router.post('/', protect, async (req, res) => {
   try {
     const { name, email, phone, address, preferredLanguage } = req.body;
+    console.log('Creating customer with data:', { 
+      name, email, phone, address, preferredLanguage,
+      userBranch: req.user.branch,
+      userId: req.user._id
+    });
 
-    const userBranchId = req.user.branch; // User modeldeki branch referansı
+    const userBranchId = req.user.branch;
+    if (!userBranchId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Kullanıcı şube bilgisi bulunamadı'
+      });
+    }
 
     // Generate a default name if not provided
     const customerName = name?.trim() || `SP-Customer-${Date.now()}`;
@@ -171,12 +182,40 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
-    // Create new customer
-    const customer = await Customer.create({
+    // Handle address format
+    let formattedAddress;
+    if (typeof address === 'string') {
+      formattedAddress = {
+        street: address.trim(),
+        city: '',
+        state: '',
+        zipCode: '',
+        country: 'TR'
+      };
+    } else if (typeof address === 'object' && address !== null) {
+      formattedAddress = {
+        street: address.street || '',
+        city: address.city || '',
+        state: address.state || '',
+        zipCode: address.zipCode || '',
+        country: address.country || 'TR'
+      };
+    } else {
+      formattedAddress = {
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        country: 'TR'
+      };
+    }
+
+    // Create new customer with optional fields
+    const customerData = {
       name: customerName,
-      email: email || undefined,
-      phone: phone || undefined,
-      address,
+      email: email?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+      address: formattedAddress,
       branchId: userBranchId,
       createdBy: {
         id: req.user._id,
@@ -184,7 +223,11 @@ router.post('/', protect, async (req, res) => {
         fullName: req.user.fullName
       },
       preferredLanguage: preferredLanguage || 'TR'
-    });
+    };
+
+    console.log('Attempting to create customer with data:', customerData);
+
+    const customer = await Customer.create(customerData);
 
     logger.info('Customer created successfully', {
       userId: req.user._id,
@@ -197,15 +240,18 @@ router.post('/', protect, async (req, res) => {
       data: customer
     });
   } catch (error) {
+    console.error('Detailed error creating customer:', error);
     logger.error('Error creating customer', {
       error: error.message,
-      userId: req.user._id,
-      branchId: req.user.branch
+      stack: error.stack,
+      userId: req.user?._id,
+      branchId: req.user?.branch
     });
 
     res.status(500).json({
       success: false,
-      message: 'Müşteri oluşturulurken bir hata oluştu'
+      message: 'Müşteri oluşturulurken bir hata oluştu',
+      details: error.message
     });
   }
 });

@@ -706,6 +706,16 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
     
+    // Update totalCentralPayment
+    if (update.totalCentralPayment !== undefined) {
+      order.totalCentralPayment = Number(update.totalCentralPayment);
+    }
+
+    // Update totalBranchProfit
+    if (update.totalBranchProfit !== undefined) {
+      order.totalBranchProfit = Number(update.totalBranchProfit);
+    }
+    
     // Handle other field updates
     if (update.notes) order.notes = update.notes;
     if (update.deviceLeftForService !== undefined) order.deviceLeftForService = update.deviceLeftForService;
@@ -736,6 +746,50 @@ router.put('/:id', auth, async (req, res) => {
       message: 'Server error updating order', 
       error: error.message 
     });
+  }
+});
+
+// Add invoice status update endpoint
+router.put('/:id/invoice', auth, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Update invoice status
+    order.isInvoiced = true;
+    order.invoicedAt = new Date();
+    await order.save();
+
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error('Error updating invoice status:', error);
+    res.status(500).json({ message: 'Error updating invoice status' });
+  }
+});
+
+// Add invoice status update endpoint
+router.put('/:id/invoice', auth, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Update invoice status
+    order.isInvoiced = true;
+    order.invoicedAt = new Date();
+    await order.save();
+
+    res.json({ success: true, order });
+  } catch (error) {
+    console.error('Error updating invoice status:', error);
+    res.status(500).json({ message: 'Error updating invoice status' });
   }
 });
 

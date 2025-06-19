@@ -19,7 +19,7 @@
     "dashboard": "Dashboard",
     "customers": "Kunden",
     "orders": "Bestellungen",
-    "catalog": "Katalog",
+    "invoices": "Rechnungen",
     "products": "Produkte",
     "inventory": "Inventar",
     "repairs": "Reparaturen",
@@ -53,7 +53,7 @@
     "details": "Bestelldetails",
     "status": {
       "pending": "Ausstehend",
-      "shipped": "Versandt",
+      "shipped": "Versendet",
       "delivered": "Geliefert",
       "completed": "Abgeschlossen",
       "cancelled": "Storniert"
@@ -61,7 +61,7 @@
     "customer": "Kunde",
     "branch": "Filiale",
     "date": "Datum",
-    "total": "Gesamtsumme",
+    "total": "Gesamt",
     "shippedOrdersTitle": "Versandte Bestellungen",
     "shippedOrdersDescription": "Versandte Bestellungen werden hier aufgelistet.",
     "allOrdersTitle": "Alle Bestellungen",
@@ -147,7 +147,19 @@
     "cancelling": "Wird storniert...",
     "cancelOrderDesc": "Möchten Sie diese Bestellung wirklich stornieren? Diese Aktion kann nicht rückgängig gemacht werden.",
     "yesCancelOrder": "Ja, Bestellung stornieren",
-    "deliveredToday": "Heute geliefert"
+    "deliveredToday": "Heute geliefert",
+    "invoice": {
+      "status": {
+        "title": "Rechnungsstatus",
+        "yes": "Ja",
+        "no": "Nein"
+      },
+      "markAsInvoiced": "Abrechnen",
+      "markAsNotInvoiced": "Als Nicht Abgerechnet Markieren",
+      "createSuccess": "Rechnung erfolgreich erstellt",
+      "createError": "Fehler beim Erstellen der Rechnung"
+    },
+    "downloadPdf": "PDF Herunterladen"
   },
   "repairs": {
     "title": "Reparaturen",
@@ -240,7 +252,8 @@
     "printWarranty": "Garantie drucken",
     "updateStatus": "Status aktualisieren",
     "cancelRepair": "Reparatur stornieren",
-    "viewCustomer": "Kunde anzeigen"
+    "viewCustomer": "Kunde anzeigen",
+    "downloadPdf": "PDF Herunterladen"
   },
   "common": {
     "yes": "Ja",
@@ -292,7 +305,8 @@
     "listTitle": "Kundenliste",
     "listDesc": "{{count}} Kunden gefunden",
     "noSearchResults": "Keine Kunden entsprechend Ihrer Suchkriterien gefunden",
-    "noCustomers": "Noch keine Kundendatensätze"
+    "noCustomers": "Noch keine Kundendatensätze",
+    "downloadPdf": "PDF Herunterladen"
   },
   "inventory": {
     "title": "Inventar",
@@ -548,5 +562,21 @@
     "newThisMonth": "Neu diesen Monat",
     "returningCustomers": "Wiederkehrende Kunden",
     "avgOrdersPerCustomer": "Durchschn. Aufträge pro Kunde"
+  },
+  "invoices": {
+    "title": "Rechnungen",
+    "listTitle": "Rechnungsliste",
+    "listDescription": "Alle Rechnungen werden hier aufgelistet",
+    "table": {
+      "date": "Datum",
+      "branch": "Filiale",
+      "orders": "Bestellungen",
+      "items": "Artikel",
+      "serviceFee": "Servicegebühr",
+      "total": "Gesamt",
+      "actions": "Aktionen",
+      "itemCount": "Artikel"
+    },
+    "downloadPdf": "PDF Herunterladen"
   }
 } 

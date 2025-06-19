@@ -38,6 +38,9 @@ import { getDeviceTypes, DeviceType } from '@/api/deviceTypes';
 import { getParts, Part as ApiPart } from '@/api/parts';
 import { useTranslation } from 'react-i18next';
 import React from 'react';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Info, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface Order {
   _id: string;
@@ -68,6 +71,8 @@ interface Order {
   branch?: any;
   totalCentralPayment?: number;
   serviceFee?: number;
+  isInvoiced?: boolean;
+  invoicedAt?: string;
 }
 
 const getDisplayName = (val:any) => {
@@ -116,7 +121,7 @@ export function Orders() {
   const [branches, setBranches] = useState([] as Array<{ _id:string; name:string }>);
   const [brands, setBrands] = useState<any[]>([]);
   const [models, setModels] = useState<any[]>([]);
-  const [statusUpdating, setStatusUpdating] = useState<Record<string, boolean>>({});
+  const [statusUpdating, setStatusUpdating] = useState<{ [key: string]: boolean }>({});
   const [orderSortDirection, setOrderSortDirection] = useState<'asc' | 'desc'>('desc');
   const [orderToDelete, setOrderToDelete] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
@@ -133,11 +138,86 @@ export function Orders() {
   const handleBulkInvoicePrint = useReactToPrint({
     contentRef: bulkInvoiceRef,
     documentTitle: 'Toplu-Fatura',
+    onAfterPrint: async () => {
+      try {
+        setIsInvoicing(prev => {
+          const newState = { ...prev };
+          selectedShippedOrderIds.forEach(id => {
+            newState[id] = true;
+          });
+          return newState;
+        });
+
+        // Get the correct token
+        const token = localStorage.getItem('accessToken');
+        console.log('Auth Token:', token);
+
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        // Create invoice in database
+        const response = await fetch('/api/invoices', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            orderIds: selectedShippedOrderIds
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create invoice');
+        }
+
+        // Update invoice status for each order
+        await Promise.all(selectedShippedOrderIds.map(async (orderId) => {
+          const orderResponse = await fetch(`/api/orders/${orderId}/invoice`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!orderResponse.ok) {
+            throw new Error(`Failed to update invoice status for order ${orderId}`);
+          }
+        }));
+
+        // Refresh orders to update invoice status
+        await loadOrders();
+        
+        // Clear selected orders
+        setSelectedShippedOrderIds([]);
+        
+        enqueueSnackbar(t('orders.invoice.createSuccess'), { variant: 'success' });
+      } catch (error) {
+        console.error('Error creating invoice:', error);
+        enqueueSnackbar(t('orders.invoice.createError'), { variant: 'error' });
+        
+        // If no token found, redirect to login
+        if (error.message === 'No authentication token found') {
+          window.location.href = '/login?session=expired';
+        }
+      } finally {
+        setIsInvoicing(prev => {
+          const newState = { ...prev };
+          selectedShippedOrderIds.forEach(id => {
+            newState[id] = false;
+          });
+          return newState;
+        });
+      }
+    }
   });
   const [readyToPrint, setReadyToPrint] = useState(false);
   const [parts, setParts] = useState<ApiPart[]>([]);
   const [pendingStatus, setPendingStatus] = useState<{orderId: string, status: string} | null>(null);
   const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
+  const [isInvoicing, setIsInvoicing] = useState<{ [key: string]: boolean }>({});
 
   // 1. Tüm veriler: orders
   // 2. Arama ve filtreleme
@@ -338,6 +418,32 @@ export function Orders() {
     }
   };
 
+  // Add function to handle invoice status change
+  const handleInvoiceStatusChange = async (orderId: string) => {
+    try {
+      setIsInvoicing(prev => ({ ...prev, [orderId]: true }));
+      
+      const response = await fetch(`/api/orders/${orderId}/invoice`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update invoice status');
+      }
+
+      // Refresh orders after status update
+      await loadOrders();
+    } catch (error) {
+      console.error('Error updating invoice status:', error);
+      enqueueSnackbar(t('orders.invoiceUpdateError'), { variant: 'error' });
+    } finally {
+      setIsInvoicing(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -449,6 +555,7 @@ export function Orders() {
                     <th className="px-3 py-2 text-left">{t('orders.table.parts')}</th>
                     <th className="px-3 py-2 text-left">{t('orders.table.status')}</th>
                     <th className="px-3 py-2 text-left">{t('orders.table.amount')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.invoice.status.title')}</th>
                     <th className="px-3 py-2 text-left">{t('orders.table.actions')}</th>
                   </tr>
                 </thead>
@@ -526,6 +633,24 @@ export function Orders() {
                         <td className="px-3 py-2">
                           {order.totalCentralPayment ? `${formatCurrency(order.totalCentralPayment)}` : '-'}
                         </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {order.isInvoiced ? (
+                              <Badge variant="success" className="w-24">
+                                {t('orders.invoice.status.yes')}
+                                {order.invoicedAt && (
+                                  <Tooltip content={format(new Date(order.invoicedAt), 'dd.MM.yyyy HH:mm')}>
+                                    <Info className="w-4 h-4 ml-1" />
+                                  </Tooltip>
+                                )}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="w-24">
+                                {t('orders.invoice.status.no')}
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-3 py-2 flex gap-2 items-center">
                           <Button size="icon" variant="outline" title={t('orders.view')} onClick={() => navigate(`/orders/${order._id}`)}>
                             <Eye className="w-4 h-4" />
@@ -587,6 +712,7 @@ export function Orders() {
                     <th className="px-3 py-2 text-left">{t('orders.table.parts')}</th>
                     <th className="px-3 py-2 text-left">{t('orders.table.status')}</th>
                     <th className="px-3 py-2 text-left">{t('orders.table.amount')}</th>
+                    <th className="px-3 py-2 text-left">{t('orders.invoice.status.title')}</th>
                     <th className="px-3 py-2 text-left">{t('orders.table.actions')}</th>
                   </tr>
                 </thead>
@@ -650,6 +776,24 @@ export function Orders() {
                         </td>
                         <td className="px-3 py-2">
                           {order.totalCentralPayment ? `${formatCurrency(order.totalCentralPayment)}` : '-'}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {order.isInvoiced ? (
+                              <Badge variant="success" className="w-24">
+                                {t('orders.invoice.status.yes')}
+                                {order.invoicedAt && (
+                                  <Tooltip content={format(new Date(order.invoicedAt), 'dd.MM.yyyy HH:mm')}>
+                                    <Info className="w-4 h-4 ml-1" />
+                                  </Tooltip>
+                                )}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="w-24">
+                                {t('orders.invoice.status.no')}
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-2 flex gap-2 items-center">
                           <Button size="icon" variant="outline" title={t('orders.view')} onClick={() => navigate(`/orders/${order._id}`)}>

@@ -1,5 +1,7 @@
 import { SnackbarProvider } from 'notistack'
 import AppRoutes from './routes'
+import { Orders } from '@/pages/Orders';
+import { Invoices } from '@/pages/Invoices';
 
 function App() {
   return (

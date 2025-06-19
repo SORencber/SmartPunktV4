@@ -1,0 +1,41 @@
+{
+  "orders": {
+    "table": {
+      "id": "Sipariş No",
+      "customer": "Müşteri",
+      "device": "Cihaz",
+      "status": "Durum",
+      "amount": "Tutar",
+      "actions": "İşlemler",
+      "invoiceStatus": "Fatura Durumu",
+      "date": "Tarih",
+      "branch": "Şube",
+      "type": "Tip",
+      "createdAt": "Sipariş Tarihi",
+      "orderNo": "Sipariş No",
+      "brand": "Marka",
+      "model": "Model",
+      "parts": "Parça (Adet)"
+    },
+    "deviceType": "Cihaz Tipi",
+    "printOrderTitle": "Siparişi Yazdır",
+    "edit": "Düzenle",
+    "invoiceUpdateError": "Fatura durumu güncellenirken hata oluştu",
+    "invoice": {
+      "status": {
+        "title": "Fatura Durumu",
+        "invoiced": "Faturalandı",
+        "notInvoiced": "Faturalanmadı"
+      },
+      "markAsInvoiced": "Faturala",
+      "markAsNotInvoiced": "Faturalanmadı Olarak İşaretle"
+    },
+    "invoicedAt": "Fatura Tarihi",
+    "selectStatus": "Durum seçin",
+    "updating": "Güncelleniyor...",
+    "updateStatusDesc": "Yeni durumu seçin ve güncelleme hakkında not ekleyin",
+    "cancelling": "İptal ediliyor...",
+    "cancelOrderDesc": "Bu siparişi iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "yesCancelOrder": "Evet, İptal Et"
+  }
+} 

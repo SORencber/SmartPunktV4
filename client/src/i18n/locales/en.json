@@ -1,0 +1,40 @@
+{
+  "orders": {
+    "table": {
+      "id": "Order No",
+      "customer": "Customer",
+      "device": "Device",
+      "status": "Status",
+      "amount": "Amount",
+      "actions": "Actions",
+      "invoiceStatus": "Invoice Status",
+      "date": "Date",
+      "branch": "Branch",
+      "type": "Type",
+      "createdAt": "Order Date",
+      "orderNo": "Order No",
+      "brand": "Brand",
+      "model": "Model",
+      "parts": "Part (Qty)"
+    },
+    "deviceType": "Device Type",
+    "printOrderTitle": "Print Order",
+    "edit": "Edit",
+    "invoiceUpdateError": "Error updating invoice status",
+    "invoice": {
+      "status": {
+        "invoiced": "Invoiced",
+        "notInvoiced": "Not Invoiced"
+      },
+      "markAsInvoiced": "Create Invoice",
+      "markAsNotInvoiced": "Mark as Not Invoiced"
+    },
+    "invoicedAt": "Invoice Date",
+    "selectStatus": "Select status",
+    "updating": "Updating...",
+    "updateStatusDesc": "Select the new status and add any notes about the update",
+    "cancelling": "Cancelling...",
+    "cancelOrderDesc": "Are you sure you want to cancel this order? This action cannot be undone.",
+    "yesCancelOrder": "Yes, Cancel Order"
+  }
+} 

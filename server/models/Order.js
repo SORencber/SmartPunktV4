@@ -173,7 +173,9 @@ const orderSchema = new mongoose.Schema({
     type: Object, // Şube adres, telefon, isim, vs. snapshot'ı
     required: false,
     default: null
-  }
+  },
+  isInvoiced: { type: Boolean, default: false },
+  invoicedAt: { type: Date }
 }, {
   timestamps: true
 });

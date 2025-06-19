@@ -19,10 +19,16 @@ export interface Customer {
 }
 
 export interface CreateCustomerData {
-  name: string;
+  name?: string;
   email?: string;
   phone?: string;
-  address?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
   branchId: string;
   createdBy: {
     id: string;

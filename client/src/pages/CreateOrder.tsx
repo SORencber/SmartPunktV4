@@ -36,7 +36,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useForm as useRegisterForm } from 'react-hook-form'
 import { getParts, type Part } from '@/api/parts'
-import { createCustomer, addOrderToCustomer } from '@/api/customers'
+import { createCustomer, addOrderToCustomer, type CreateCustomerData } from '@/api/customers'
 import { useBranch } from '@/contexts/BranchContext'
 import type { User as AuthUser } from '@/contexts/AuthContext'
 import { Loader2 } from 'lucide-react'
@@ -45,6 +45,7 @@ import { useReactToPrint } from 'react-to-print'
 import { QRCodeSVG } from 'qrcode.react'
 // import logo image near top imports
 import logoImg from '@/assets/brands/smartpunkt.jpg'
+import { z } from 'zod'
 
 interface Customer {
   _id: string;
@@ -107,21 +108,6 @@ interface NewCustomerForm {
   address?: string;
 }
 
-interface CreateCustomerData {
-  name: string;
-  phone: string;
-  email?: string;
-  branchId: string;
-  preferredLanguage: 'TR' | 'EN';
-  isActive: boolean;
-  address: string;
-  createdBy: {
-    id: string;
-    email: string;
-    fullName: string;
-  };
-}
-
 // Props for edit/create mode
 interface CreateOrderProps {
   mode?: 'create' | 'edit';
@@ -129,6 +115,19 @@ interface CreateOrderProps {
   orderId?: string;     // id for update
   onDone?: () => void;  // callback on success
 }
+
+const customerSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.union([
+    z.string().email('Geçerli bir email adresi giriniz'),
+    z.literal(''),
+    z.undefined()
+  ]).optional(),
+  address: z.string().optional(),
+  preferredLanguage: z.enum(['TR', 'DE', 'EN']).optional(),
+  notes: z.string().optional(),
+});
 
 export function CreateOrder({ mode = 'create', order, orderId, onDone }: CreateOrderProps) {
   const [searchParams] = useSearchParams();
@@ -635,6 +634,7 @@ export function CreateOrder({ mode = 'create', order, orderId, onDone }: CreateO
         centralPartPayment: !isCentralServiceOrder ? calculateCentralPartsCost() : undefined,
         branchPartProfit: !isCentralServiceOrder ? branchProfit : undefined,
         totalCentralPayment: totalCentralPayment,
+        totalBranchProfit: isCentralServiceOrder ? branchServiceFee : (branchProfit + branchServiceFee),
         branchSnapshot: branch
       };
 
@@ -722,7 +722,9 @@ export function CreateOrder({ mode = 'create', order, orderId, onDone }: CreateO
         branchId: userBranchId,
         preferredLanguage: 'TR',
         isActive: true,
-        address: data.address || '',
+        address: { // Address must be an object
+          street: data.address || '',
+        },
         createdBy: {
           id: userId,
           email: (user as AuthUser)?.email || '',
@@ -881,15 +883,16 @@ export function CreateOrder({ mode = 'create', order, orderId, onDone }: CreateO
 
   // Helper function to calculate central service fee
   const calculateCentralServiceFee = () => {
-    let total = 0;
+    let maxFee = 0;
     partFields.forEach((field, index) => {
       const partId = watch(`parts.${index}.partId`);
       const part = parts.find(p => p._id === partId);
       if (part) {
-        total += getPartServiceFee(part);
+        const fee = getPartServiceFee(part);
+        maxFee = Math.max(maxFee, fee);
       }
     });
-    return total;
+    return maxFee;
   };
 
   // Helper function to calculate total amount to pay to central service
@@ -2768,7 +2771,8 @@ export function CreateOrder({ mode = 'create', order, orderId, onDone }: CreateO
                             branchServiceFee:   branchServiceFee,
                             centralPartPayment: !isCentralServiceOrder ? calculateCentralPartsCost() : undefined,
                             branchPartProfit:   !isCentralServiceOrder ? branchProfit : undefined,
-                            totalCentralPayment: totalCentralPayment,
+                            totalCentralPayment: isCentralServiceOrder ? calculateTotalCentralPayment() : calculateCentralPartsCost(),
+                            totalBranchProfit: isCentralServiceOrder ? branchServiceFee : (branchProfit + branchServiceFee),
                             branchSnapshot: branch
                           };
 

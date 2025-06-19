@@ -33,6 +33,8 @@ import { useAuth } from './contexts/AuthContext';
 import { BranchProvider } from '@/contexts/BranchContext';
 import RepairsPage from './pages/RepairsPage';
 import RepairDetailsPage from './pages/RepairDetailsPage';
+import CreateOrderWizard from '@/pages/CreateOrderWizard';
+import { Invoices } from '@/pages/Invoices';
 
 const AppRoutes = () => {
   const { user, isLoading } = useAuth();
@@ -62,6 +64,7 @@ const AppRoutes = () => {
         <Route path="/customers" element={<Customers />} />
         <Route path="/customers/:id" element={<CustomerDetails />} />
         <Route path="/orders/create" element={<CreateOrder />} />
+        <Route path="/orders/create-wizard" element={<CreateOrderWizard />} />
         <Route path="/orders/edit/:id" element={<EditOrder />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
@@ -78,6 +81,7 @@ const AppRoutes = () => {
         <Route path="/create-product" element={<CreateProduct />} />
         <Route path="/repairs" element={<RepairsPage />} />
         <Route path="/repairs/:id" element={<RepairDetailsPage />} />
+        <Route path="/invoices" element={<Invoices />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

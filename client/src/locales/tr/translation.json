@@ -19,7 +19,7 @@
     "dashboard": "Panel",
     "customers": "Müşteriler",
     "orders": "Siparişler",
-    "catalog": "Katalog",
+    "invoices": "Faturalar",
     "products": "Ürünler",
     "inventory": "Envanter",
     "repairs": "Tamirler",
@@ -141,7 +141,19 @@
     "updateStatusDesc": "Yeni durumu seçin ve güncellemeyle ilgili not ekleyin",
     "cancelling": "İptal ediliyor...",
     "cancelOrderDesc": "Bu siparişi iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
-    "yesCancelOrder": "Evet, Siparişi İptal Et"
+    "yesCancelOrder": "Evet, Siparişi İptal Et",
+    "invoice": {
+      "status": {
+        "title": "Fatura Durumu",
+        "yes": "Evet",
+        "no": "Hayır"
+      },
+      "markAsInvoiced": "Faturala",
+      "markAsNotInvoiced": "Faturalanmadı Olarak İşaretle",
+      "createSuccess": "Fatura başarıyla oluşturuldu",
+      "createError": "Fatura oluşturulurken hata oluştu"
+    },
+    "downloadPdf": "PDF İndir"
   },
   "repairs": {
     "title": "Tamirler",
@@ -234,7 +246,8 @@
     "printWarranty": "Garanti Yazdır",
     "updateStatus": "Durumu Güncelle",
     "cancelRepair": "Tamiri İptal Et",
-    "viewCustomer": "Müşteriyi Görüntüle"
+    "viewCustomer": "Müşteriyi Görüntüle",
+    "downloadPdf": "PDF İndir"
   },
   "customers": {
     "title": "Müşteriler",
@@ -280,7 +293,8 @@
     "listTitle": "Müşteri Listesi",
     "listDesc": "{{count}} müşteri bulundu",
     "noSearchResults": "Arama kriterlerinize uygun müşteri bulunamadı",
-    "noCustomers": "Henüz müşteri kaydı bulunmuyor"
+    "noCustomers": "Henüz müşteri kaydı bulunmuyor",
+    "downloadPdf": "PDF İndir"
   },
   "inventory": {
     "title": "Envanter",
@@ -548,5 +562,21 @@
     "no": "Hayır",
     "previous": "Önceki",
     "next": "Sonraki"
+  },
+  "invoices": {
+    "title": "Faturalar",
+    "listTitle": "Fatura Listesi",
+    "listDescription": "Tüm faturalar burada listelenir",
+    "table": {
+      "date": "Tarih",
+      "branch": "Şube",
+      "orders": "Siparişler",
+      "items": "Ürünler",
+      "serviceFee": "Servis Ücreti",
+      "total": "Toplam",
+      "actions": "İşlemler",
+      "itemCount": "ürün"
+    },
+    "downloadPdf": "PDF İndir"
   }
 } 

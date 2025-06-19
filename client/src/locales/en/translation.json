@@ -19,7 +19,7 @@
     "dashboard": "Dashboard",
     "customers": "Customers",
     "orders": "Orders",
-    "catalog": "Catalog",
+    "invoices": "Invoices",
     "products": "Products",
     "inventory": "Inventory",
     "repairs": "Repairs",
@@ -142,7 +142,19 @@
     "cancelling": "Cancelling...",
     "cancelOrderDesc": "Are you sure you want to cancel this order? This action cannot be undone.",
     "yesCancelOrder": "Yes, Cancel Order",
-    "deliveredToday": "Delivered Today"
+    "deliveredToday": "Delivered Today",
+    "invoice": {
+      "status": {
+        "title": "Invoice Status",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "markAsInvoiced": "Create Invoice",
+      "markAsNotInvoiced": "Mark as Not Invoiced",
+      "createSuccess": "Invoice created successfully",
+      "createError": "Error creating invoice"
+    },
+    "downloadPdf": "Download PDF"
   },
   "repairs": {
     "title": "Repairs",
@@ -544,5 +556,21 @@
     "previous": "Previous",
     "next": "Next",
     "cancel": "Cancel"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "listTitle": "Invoice List",
+    "listDescription": "All invoices are listed here",
+    "table": {
+      "date": "Date",
+      "branch": "Branch",
+      "orders": "Orders",
+      "items": "Items",
+      "serviceFee": "Service Fee",
+      "total": "Total",
+      "actions": "Actions",
+      "itemCount": "items"
+    },
+    "downloadPdf": "Download PDF"
   }
 } 
