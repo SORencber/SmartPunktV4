@@ -137,22 +137,18 @@ router.post('/', auth, async (req, res) => {
       serviceType,
       description,
       products: productsRaw,
+      items: itemsRaw,
       labor,
       estimatedCompletion,
       priority = 'standard',
       payment = {}
     } = req.body;
 
-    // Parse products if sent as JSON string
-    let products = productsRaw;
+    // Hem items hem products desteği
+    let products = itemsRaw || productsRaw;
     if (typeof products === 'string') {
-      try {
-        products = JSON.parse(products);
-      } catch (err) {
-        products = [];
-      }
+      try { products = JSON.parse(products); } catch (err) { products = []; }
     }
-
     if (!Array.isArray(products)) products = [];
 
     // Determine id field (productId or partId) and validate
@@ -607,6 +603,138 @@ router.post('/:id/barcode', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error generating barcode'
+    });
+  }
+});
+
+// Update order
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const update = req.body;
+
+    console.log('Order update request:', { orderId, update });
+
+    // Hem items hem products desteği
+    let items = update.items || update.products;
+    if (typeof items === 'string') {
+      try { items = JSON.parse(items); } catch (err) { items = []; }
+    }
+    if (!Array.isArray(items)) items = [];
+
+    // Only allow branch staff/technician to update their own branch's orders
+    let matchConditions = { _id: orderId };
+    if (req.user.role === 'branch_staff' || req.user.role === 'technician') {
+      matchConditions.branch = req.user.branchId;
+    }
+
+    const order = await Order.findOne(matchConditions);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Update fields safely with validation
+    if (update.customerId) order.customerId = update.customerId;
+    
+    // Handle device object updates
+    if (update.device) {
+      order.device = {
+        ...order.device,
+        ...update.device,
+        // Frontend'den gelen type, brand, model alanlarını doğru field'lara map et
+        deviceTypeId: update.device.deviceTypeId || update.device.type || order.device.deviceTypeId,
+        brandId: update.device.brandId || update.device.brand || order.device.brandId,
+        modelId: update.device.modelId || update.device.model || order.device.modelId,
+        serialNumber: update.device.serialNumber || order.device.serialNumber || '',
+        condition: update.device.condition || order.device.condition || '',
+        names: update.device.names || order.device.names || {}
+      };
+    }
+    
+    // Handle loanedDevice updates
+    if (update.loanedDevice !== undefined) {
+      order.loanedDevice = update.loanedDevice;
+    }
+    
+    if (update.isLoanedDeviceGiven !== undefined) {
+      order.isLoanedDeviceGiven = update.isLoanedDeviceGiven;
+    }
+    
+    // Handle items/parts updates
+    if (items && items.length > 0) {
+      order.items = items.map(item => ({
+        partId: item.partId || item.productId || item._id,
+        name: item.name || 'Unknown Part',
+        quantity: Number(item.quantity) || 1,
+        price: Number(item.price) || 0,
+        unitPrice: Number(item.price) || 0,
+        totalPrice: (Number(item.price) || 0) * (Number(item.quantity) || 1)
+      }));
+    }
+    
+    // Handle payment updates
+    if (update.payment) {
+      order.payment = {
+        ...order.payment,
+        ...update.payment,
+        totalAmount: Number(update.payment.totalAmount || update.payment.amount) || order.payment.totalAmount,
+        depositAmount: Number(update.payment.depositAmount) || order.payment.depositAmount,
+        paidAmount: Number(update.payment.paidAmount) || order.payment.paidAmount,
+        remainingAmount: Number(update.payment.remainingAmount) || order.payment.remainingAmount,
+        paymentMethod: update.payment.paymentMethod || update.payment.method || order.payment.paymentMethod
+      };
+    }
+    
+    // Handle central service updates
+    if (update.isCentralService !== undefined) {
+      order.isCentralService = update.isCentralService;
+      
+      if (update.isCentralService) {
+        order.centralService = {
+          partPrices: Number(update.centralPartPrices) || 0,
+          serviceFee: Number(update.centralServiceFee) || 0,
+          branchServiceFee: Number(update.branchServiceFee) || 0
+        };
+        order.branchService = undefined;
+      } else {
+        order.branchService = {
+          centralPartPayment: Number(update.centralPartPayment) || 0,
+          branchPartProfit: Number(update.branchPartProfit) || 0,
+          branchServiceFee: Number(update.branchServiceFee) || 0
+        };
+        order.centralService = undefined;
+      }
+    }
+    
+    // Handle other field updates
+    if (update.notes) order.notes = update.notes;
+    if (update.deviceLeftForService !== undefined) order.deviceLeftForService = update.deviceLeftForService;
+    if (update.sendToCentralService !== undefined) order.sendToCentralService = update.sendToCentralService;
+    if (update.branchSnapshot) order.branchSnapshot = update.branchSnapshot;
+    
+    // Update timestamp
+    order.updatedAt = new Date();
+
+    await order.save();
+
+    console.log('Order updated successfully:', order._id);
+
+    res.json({ 
+      success: true, 
+      message: 'Order updated successfully', 
+      order: {
+        _id: order._id,
+        orderNumber: order.orderId,
+        status: order.status,
+        updatedAt: order.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error updating order', 
+      error: error.message 
     });
   }
 });

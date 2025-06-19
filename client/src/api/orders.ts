@@ -125,3 +125,16 @@ export const deleteOrder = async (id: string) => {
     throw new Error(error?.response?.data?.message || error.message);
   }
 }
+
+// Description: Update an order
+// Endpoint: PUT /api/orders/:id
+// Request: { ...order fields... }
+// Response: { order: Order, message: string }
+export const updateOrder = async (id: string, data: any) => {
+  try {
+    const response = await api.put(`/api/orders/${id}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
+};

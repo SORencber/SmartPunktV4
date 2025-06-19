@@ -18,6 +18,7 @@ import { Warranties } from './pages/Warranties';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { CreateOrder } from './pages/CreateOrder';
+import EditOrder from './pages/EditOrder';
 import { OrderDetails } from './pages/OrderDetails';
 import CustomerDetails from './pages/CustomerDetails';
 import { Catalog } from './pages/Catalog';
@@ -61,6 +62,7 @@ const AppRoutes = () => {
         <Route path="/customers" element={<Customers />} />
         <Route path="/customers/:id" element={<CustomerDetails />} />
         <Route path="/orders/create" element={<CreateOrder />} />
+        <Route path="/orders/edit/:id" element={<EditOrder />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
         <Route path="/catalog" element={<Catalog />} />

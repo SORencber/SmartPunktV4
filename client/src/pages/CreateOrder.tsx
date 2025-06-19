@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { createOrder } from '@/api/orders'
+import { createOrder, updateOrder } from '@/api/orders'
 import { getCustomers } from '@/api/customers'
 import { getInventory } from '@/api/inventory'
 import { useSnackbar } from 'notistack'
@@ -122,7 +122,15 @@ interface CreateCustomerData {
   };
 }
 
-export function CreateOrder() {
+// Props for edit/create mode
+interface CreateOrderProps {
+  mode?: 'create' | 'edit';
+  order?: any;          // order data when editing
+  orderId?: string;     // id for update
+  onDone?: () => void;  // callback on success
+}
+
+export function CreateOrder({ mode = 'create', order, orderId, onDone }: CreateOrderProps) {
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(() => {
     const stepParam = Number(searchParams.get('step'));
@@ -144,8 +152,42 @@ export function CreateOrder() {
   const [loadingParts, setLoadingParts] = useState(false)
   const { user } = useAuth()
 
-  const { control, register, handleSubmit, watch, setValue, formState: { errors } } = useForm<OrderForm>({
-    defaultValues: {
+  const initialDefaults: OrderForm = mode === 'edit' && order ? {
+    customerId: order.customerId?._id || order.customerId || '',
+    deviceType: order.device?.deviceTypeId || order.device?.type || '',
+    deviceBrand: order.device?.brandId || order.device?.brand || '',
+    deviceModel: order.device?.modelId || order.device?.model || '',
+    serialNumber: order.device?.serialNumber || '',
+    deviceCondition: order.device?.condition || '',
+    serviceType: order.serviceType || '',
+    estimatedCompletion: order.estimatedCompletion || '',
+    paymentMethod: order.payment?.method || '',
+    paymentAmount: order.payment?.amount || 0,
+    parts: order.products?.map((p: any) => ({ partId: p.productId, quantity: p.quantity })) || [],
+    labor: order.labor || { total: 0 },
+    phoneReturned: order.phoneReturned || 'no',
+    customerName: order.customerId?.name || order.customerName || '',
+    customerPhone: order.customerId?.phone || order.customerPhone || '',
+    customerEmail: order.customerId?.email || order.customerEmail || '',
+    brand: '', model: '', imei: '', faultDescription: order.description || '', accessories: order.accessories || {}, notes: order.notes || '',
+  } : {
+    customerId: '',
+    deviceType: '',
+    deviceBrand: '',
+    deviceModel: '',
+    serialNumber: '',
+    deviceCondition: '',
+    serviceType: '',
+    estimatedCompletion: '',
+    paymentMethod: '',
+    paymentAmount: 0,
+    parts: [],
+    labor: { total: 0 },
+    phoneReturned: 'no',
+  } as any;
+
+  const { control, register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<OrderForm>({
+    defaultValues: mode === 'edit' && order ? { ...order } : {
       customerId: '',
       deviceType: '',
       deviceBrand: '',
@@ -159,10 +201,20 @@ export function CreateOrder() {
       parts: [],
       labor: { total: 0 },
       phoneReturned: 'no',
+      customerName: '',
+      customerPhone: '',
+      customerEmail: '',
+      brand: '',
+      model: '',
+      imei: '',
+      faultDescription: '',
+      accessories: {},
+      notes: '',
+      loanedDevice: undefined,
     }
-  })
+  });
 
-  const { fields: partFields, append: appendPart, remove: removePart } = useFieldArray({
+  const { fields: partFields, append: appendPart, remove: removePart, replace: replaceParts } = useFieldArray({
     control,
     name: 'parts'
   });
@@ -537,61 +589,16 @@ export function CreateOrder() {
 
   const onSubmit = async (data: OrderForm) => {
     try {
-      if (currentStep === 2 && showNewCustomerForm) {
-        // Handle new customer creation
-        const result = await handleNewCustomer(data as unknown as NewCustomerForm);
-        if (!result) return; // Error already handled in handleNewCustomer
-
-        const { newCustomer, allFormValues } = result;
-
-        // Refresh customers list using getCustomers API
-        const customersResponse = await getCustomers({ limit: 100 });
-        if (customersResponse.success) {
-          setAllCustomers(customersResponse.data);
-        }
-
-        // Wait for state updates
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Restore all form values except customerId
-        Object.entries(allFormValues).forEach(([key, value]) => {
-          if (key !== 'customerId' && key in data) {
-            setValue(key as keyof OrderForm, value);
-          }
-        });
-
-        // Wait for form updates
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Verify restored values
-        const restoredValues = watch();
-        console.log('Form values after restoration:', restoredValues);
-
-        // Move to step 3
-        setCurrentStep(3);
-
-        // Show success message
-        enqueueSnackbar('Müşteri başarıyla oluşturuldu', { 
-          variant: 'success',
-          anchorOrigin: { vertical: 'top', horizontal: 'right' }
-        });
-
-        return;
-      }
-
       const isCentralServiceOrder = isCentral === 'yes';
-
       const orderData = {
         customerId: selectedCustomer?._id,
         products: selectedProducts,
         deviceLeftForService,
         sendToCentralService: isCentralServiceOrder,
         device: {
-          // IDs for receipt
           deviceTypeId: selectedDeviceIds.deviceTypeId || watch('deviceType'),
           brandId: selectedDeviceIds.brandId || watch('deviceBrand'),
           modelId: selectedDeviceIds.modelId || watch('deviceModel'),
-          // Legacy fields
           type: selectedDeviceIds.deviceTypeId || watch('deviceType'),
           brand: selectedDeviceIds.brandId || watch('deviceBrand'),
           model: selectedDeviceIds.modelId || watch('deviceModel'),
@@ -627,14 +634,20 @@ export function CreateOrder() {
         branchServiceFee,
         centralPartPayment: !isCentralServiceOrder ? calculateCentralPartsCost() : undefined,
         branchPartProfit: !isCentralServiceOrder ? branchProfit : undefined,
+        totalCentralPayment: totalCentralPayment,
         branchSnapshot: branch
       };
 
-      const response = await createOrder(orderData)
+      let response;
+      if (mode === 'edit' && orderId) {
+        response = await updateOrder(orderId, orderData);
+      } else {
+        response = await createOrder(orderData);
+      }
+
       if (response && response.order) {
         const fullOrder = {
           ...response.order,
-          // merge names from orderData so they are always present for the receipt
           device: {
             ...response.order.device,
             names: orderData.device.names,
@@ -651,14 +664,14 @@ export function CreateOrder() {
         setSavedOrder(fullOrder);
       }
       setOrderSaved(true);
-      enqueueSnackbar("Order created successfully", {
-        variant: "success",
-      })
+      enqueueSnackbar(mode === 'edit' ? 'Sipariş başarıyla güncellendi' : 'Order created successfully', {
+        variant: 'success',
+      });
       // Do not navigate away so user can print
     } catch (error) {
-      enqueueSnackbar("Error", {
-        variant: "error",
-      })
+      enqueueSnackbar('Error', {
+        variant: 'error',
+      });
     }
   }
 
@@ -886,7 +899,7 @@ export function CreateOrder() {
 
   // Add helper functions for total amount calculations
   const calculateCentralCustomerTotal = () => {
-    return calculatePartsTotal() + calculateCentralServiceFee() + centralServiceFee;
+    return calculateCentralPartsCost() + calculateCentralServiceFee() + branchServiceFee;
   };
 
   const calculateBranchCustomerTotal = () => {
@@ -1061,6 +1074,131 @@ export function CreateOrder() {
   // Add state variable after other useState declarations
   const [depositAmount, setDepositAmount] = useState<number>(0);
 
+  // EDIT MODU: depositAmount'ı order verisinden yükle
+  useEffect(() => {
+    if (mode === 'edit' && order) {
+      // Order verisinden deposit amount'ı al
+      const depositValue = order.payment?.depositAmount || 
+                          order.payment?.paidAmount || 
+                          order.depositAmount || 
+                          0;
+      setDepositAmount(Number(depositValue));
+    }
+  }, [mode, order]);
+
+  // EDIT MODU: Tüm servis ücreti ve fiyat alanlarını order verisinden yükle
+  useEffect(() => {
+    if (mode === 'edit' && order) {
+      // Central/Branch service belirleme
+      if (typeof order.isCentralService === 'boolean') {
+        setIsCentral(order.isCentralService ? 'yes' : 'no');
+      }
+
+      // Branch service fee
+      if (order.branchService?.branchServiceFee !== undefined) {
+        setBranchServiceFee(Number(order.branchService.branchServiceFee));
+      } else if (order.branchServiceFee !== undefined) {
+        setBranchServiceFee(Number(order.branchServiceFee));
+      }
+
+      // Central service fee (şube payı için branchServiceFee kullan)
+      if (order.branchService?.branchServiceFee !== undefined) {
+        setBranchServiceFee(Number(order.branchService.branchServiceFee));
+      } else if (order.branchServiceFee !== undefined) {
+        setBranchServiceFee(Number(order.branchServiceFee));
+      }
+
+      // Branch profit
+      if (order.branchService?.branchPartProfit !== undefined) {
+        setBranchProfit(Number(order.branchService.branchPartProfit));
+      } else if (order.branchPartProfit !== undefined) {
+        setBranchProfit(Number(order.branchPartProfit));
+      }
+
+      // Central part prices
+      if (order.centralService?.partPrices !== undefined) {
+        setCentralPartPrices(Number(order.centralService.partPrices));
+      } else if (order.centralPartPrices !== undefined) {
+        setCentralPartPrices(Number(order.centralPartPrices));
+      }
+
+      // Service fee (genel)
+      if (order.serviceFee !== undefined) {
+        setServiceFee(Number(order.serviceFee));
+      }
+
+      // Total central payment
+      if (order.totalCentralPayment !== undefined) {
+        setTotalCentralPayment(Number(order.totalCentralPayment));
+      }
+
+      console.log('Edit mode: loaded order values', {
+        isCentralService: order.isCentralService,
+        branchServiceFee: order.branchServiceFee || order.branchService?.branchServiceFee,
+        branchProfit: order.branchPartProfit || order.branchService?.branchPartProfit,
+        centralPartPrices: order.centralPartPrices || order.centralService?.partPrices,
+        depositAmount: order.payment?.depositAmount || order.payment?.paidAmount || order.depositAmount || 0
+      });
+    }
+  }, [mode, order]);
+
+  // EDIT MODU: Tüm servis ücreti ve fiyat alanlarını order verisinden yükle
+  useEffect(() => {
+    if (mode === 'edit' && order) {
+      // Central/Branch service belirleme
+      if (typeof order.isCentralService === 'boolean') {
+        setIsCentral(order.isCentralService ? 'yes' : 'no');
+      }
+
+      // Branch service fee
+      if (order.branchService?.branchServiceFee !== undefined) {
+        setBranchServiceFee(Number(order.branchService.branchServiceFee));
+      } else if (order.branchServiceFee !== undefined) {
+        setBranchServiceFee(Number(order.branchServiceFee));
+      }
+
+      // Central service fee
+      if (order.centralService?.serviceFee !== undefined) {
+        setCentralServiceFee(Number(order.centralService.serviceFee));
+      } else if (order.centralServiceFee !== undefined) {
+        setCentralServiceFee(Number(order.centralServiceFee));
+      }
+
+      // Branch profit
+      if (order.branchService?.branchPartProfit !== undefined) {
+        setBranchProfit(Number(order.branchService.branchPartProfit));
+      } else if (order.branchPartProfit !== undefined) {
+        setBranchProfit(Number(order.branchPartProfit));
+      }
+
+      // Central part prices
+      if (order.centralService?.partPrices !== undefined) {
+        setCentralPartPrices(Number(order.centralService.partPrices));
+      } else if (order.centralPartPrices !== undefined) {
+        setCentralPartPrices(Number(order.centralPartPrices));
+      }
+
+      // Service fee (genel)
+      if (order.serviceFee !== undefined) {
+        setServiceFee(Number(order.serviceFee));
+      }
+
+      // Total central payment
+      if (order.totalCentralPayment !== undefined) {
+        setTotalCentralPayment(Number(order.totalCentralPayment));
+      }
+
+      console.log('Edit mode: loaded order values', {
+        isCentralService: order.isCentralService,
+        branchServiceFee: order.branchServiceFee || order.branchService?.branchServiceFee,
+        centralServiceFee: order.centralServiceFee || order.centralService?.serviceFee,
+        branchProfit: order.branchPartProfit || order.branchService?.branchPartProfit,
+        centralPartPrices: order.centralPartPrices || order.centralService?.partPrices,
+        depositAmount: order.payment?.depositAmount || order.payment?.paidAmount || order.depositAmount || 0
+      });
+    }
+  }, [mode, order]);
+
   // Add after other calculation functions
   const calculateBranchProfit = () => {
     // Şube kar payı: parça fiyatlarının %20'si
@@ -1127,12 +1265,14 @@ export function CreateOrder() {
   const [centralPartPrices, setCentralPartPrices] = useState(0);
   const [centralPartPayment, setCentralPartPayment] = useState(0);
   const [branchPartProfit, setBranchPartProfit] = useState(0);
+  const [totalCentralPayment, setTotalCentralPayment] = useState(0);
 
   // Seçilen ürün/servis değiştikçe otomatik hesaplama
   useEffect(() => {
     setCentralPartPrices(calculateCentralPartsCost());
     setCentralPartPayment(calculateCentralPartsCost());
     setBranchPartProfit(calculateBranchProfit());
+    setTotalCentralPayment(calculateTotalCentralPayment());
   }, [partFields, parts, sendToCentralService]);
 
   // Add new state lines after existing ones
@@ -1288,6 +1428,124 @@ export function CreateOrder() {
     };
     loadLoanedDeviceModels();
   }, [loanedDeviceType, loanedDeviceBrand, enqueueSnackbar]);
+
+  // If edit mode and order changes, update form values
+  useEffect(() => {
+    if (mode === 'edit' && order) {
+      reset(order);
+      if (order.parts && Array.isArray(order.parts)) {
+        replaceParts(order.parts);
+      }
+    }
+  }, [mode, order, reset, replaceParts]);
+
+  // Add this after isCentral state declaration
+  useEffect(() => {
+    if (mode === 'edit' && order && typeof order.isCentral === 'string') {
+      setIsCentral(order.isCentral);
+    }
+  }, [mode, order]);
+
+  // Add this after selectedCustomer state declaration
+  useEffect(() => {
+    if (
+      mode === 'edit' &&
+      order &&
+      (order.customerId || order.customerName || order.customerPhone || order.customerEmail)
+    ) {
+      setSelectedCustomer({
+        _id: order.customerId || '',
+        name: order.customerName || '',
+        phone: order.customerPhone || '',
+        email: order.customerEmail || '',
+      });
+      // Set the search term to the customer's name so that step 2 shows the customer info
+      if (order.customerName) {
+        setCustomerSearchTerm(order.customerName);
+      }
+    }
+  }, [mode, order]);
+
+  useEffect(() => {
+    if (mode === 'edit' && order) {
+      // ... existing selectedCustomer logic ...
+      // Set loaned device states if present
+      if (typeof order.isLoanedDeviceGiven === 'boolean') {
+        setIsLoanedDeviceGiven(order.isLoanedDeviceGiven);
+      }
+      if (order.loanedDevice) {
+        const deviceType = order.loanedDevice.deviceType || '';
+        const deviceBrand = order.loanedDevice.deviceBrand || '';
+        const deviceModel = order.loanedDevice.deviceModel || '';
+        
+        setLoanedDeviceType(deviceType);
+        setLoanedDeviceBrand(deviceBrand);
+        setLoanedDeviceModel(deviceModel);
+        
+        // Edit modda ödünç cihaz modelleri için ayrıca yükleme yap
+        if (deviceType && deviceBrand) {
+          const loadLoanedDeviceModelsForEdit = async () => {
+            try {
+              setLoadingDeviceData(true);
+              const response = await getModels({ brandId: deviceBrand });
+              if (response.success) {
+                // Sadece seçili deviceTypeId ve brandId'ye ait modelleri al
+                const filteredModels = response.data.filter(
+                  (model: ApiModel) =>
+                    model.isActive &&
+                    model.deviceTypeId === deviceType &&
+                    model.brandId === deviceBrand
+                );
+                // Mevcut models array'ine ödünç cihaz modellerini ekle (duplicate'ları önlemek için)
+                setModels(prevModels => {
+                  const existingIds = new Set(prevModels.map(m => m._id));
+                  const newModels = filteredModels.filter(m => !existingIds.has(m._id));
+                  return [...prevModels, ...newModels];
+                });
+              }
+            } catch (error) {
+              console.error('Error loading loaned device models for edit:', error);
+            } finally {
+              setLoadingDeviceData(false);
+            }
+          };
+          loadLoanedDeviceModelsForEdit();
+        }
+      }
+    }
+  }, [mode, order]);
+
+  // Sync selectedProducts with partFields
+  useEffect(() => {
+    const products = partFields.map((field, idx) => {
+      const partId = watch(`parts.${idx}.partId`);
+      const quantity = watch(`parts.${idx}.quantity`) || 1;
+      const part = parts.find(p => p._id === partId);
+      return part ? {
+        partId,
+        productId: partId,
+        _id: partId,
+        name: getPartName(part),
+        quantity,
+        price: getPartPrice(part),
+      } : null;
+    }).filter(Boolean);
+    setSelectedProducts(products);
+  }, [partFields, parts, watch]);
+
+  // EDIT MODU: Sipariş düzenlenirken mevcut ürün/part listesini selectedProducts'a aktar
+  useEffect(() => {
+    if (mode === 'edit' && order && Array.isArray(order.items) && order.items.length > 0) {
+      setSelectedProducts(order.items.map((item: any) => ({
+        partId: item.partId || item.productId || item._id,
+        productId: item.partId || item.productId || item._id,
+        _id: item.partId || item.productId || item._id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })));
+    }
+  }, [mode, order]);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -1752,6 +2010,10 @@ export function CreateOrder() {
                               <span className="font-medium text-blue-800">{branchProfit.toFixed(2)} €</span>
                             </div>
                             <div className="flex justify-between items-center mt-1">
+                              <span className="text-blue-800">Merkeze Ödenecek Toplam:</span>
+                              <span className="font-medium text-blue-800">{totalCentralPayment.toFixed(2)} €</span>
+                            </div>
+                            <div className="flex justify-between items-center mt-1">
                               <span className="text-blue-800">Şube Servis Ücreti:</span>
                               <span className="font-medium text-blue-800">{branchServiceFee.toFixed(2)} €</span>
                             </div>
@@ -1863,12 +2125,12 @@ export function CreateOrder() {
                       <span className="font-medium">{calculatePartsTotal().toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-blue-100">Şube Kar Payı</span>
-                      <span className="font-medium">{branchProfit.toFixed(2)} €</span>
+                      <span className="text-blue-100">Merkeze Ödenecek Toplam</span>
+                      <span className="font-medium">{totalCentralPayment.toFixed(2)} €</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-blue-100">Şube Servis Ücreti</span>
-                      <span className="font-medium">{branchServiceFee.toFixed(2)} €</span>
+                      <span className="text-blue-100">Şube Kar Payı</span>
+                      <span className="font-medium">{branchProfit.toFixed(2)} €</span>
                     </div>
                     <div className="pt-1.5 mt-1.5 border-t border-blue-500">
                       <div className="flex justify-between items-center">
@@ -2178,12 +2440,12 @@ export function CreateOrder() {
                             <span className="font-medium text-white">{calculatePartsTotal().toFixed(2)} €</span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-blue-100">Şube Kar Payı</span>
-                            <span className="font-medium text-white">{branchProfit.toFixed(2)} €</span>
+                            <span className="text-blue-100">Merkeze Ödenecek Toplam</span>
+                            <span className="font-medium text-white">{totalCentralPayment.toFixed(2)} €</span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-blue-100">Şube Servis Ücreti</span>
-                            <span className="font-medium text-white">{branchServiceFee.toFixed(2)} €</span>
+                            <span className="text-blue-100">Şube Kar Payı</span>
+                            <span className="font-medium text-white">{branchProfit.toFixed(2)} €</span>
                           </div>
                           <div className="pt-1.5 mt-1.5 border-t border-blue-400/30">
                             <div className="flex justify-between items-center">
@@ -2505,23 +2767,31 @@ export function CreateOrder() {
                             centralServiceFee:  isCentralServiceOrder ? calculateCentralServiceFee() : undefined,
                             branchServiceFee:   branchServiceFee,
                             centralPartPayment: !isCentralServiceOrder ? calculateCentralPartsCost() : undefined,
-                            branchPartProfit:   !isCentralServiceOrder ? branchProfit : undefined
+                            branchPartProfit:   !isCentralServiceOrder ? branchProfit : undefined,
+                            totalCentralPayment: totalCentralPayment,
+                            branchSnapshot: branch
                           };
 
-                          // Save order to database
-                          const response = await createOrder(orderData);
-                          
-                          // Order successfully created
-                          if (response?.order?._id) {
-                            // Persist order details under the related customer as well
-                            const customerIdSafe = selectedCustomer?._id;
-                            if (response?.order?._id && customerIdSafe) {
-                              await addOrderToCustomer(customerIdSafe as string, {
-                                orderId: response.order._id,
-                                orderNumber: response.order.orderNumber,
-                                barcode: response.order.barcode,
-                                orderDetails: orderData
-                              });
+                          // Save order to database - Edit veya Create moduna göre
+                          let response;
+                          if (mode === 'edit' && orderId) {
+                            // Edit modda PUT endpoint kullan
+                            response = await updateOrder(orderId, orderData);
+                          } else {
+                            // Create modda POST endpoint kullan
+                            response = await createOrder(orderData);
+                            
+                            // Order successfully created - sadece create modda customer'a order ekle
+                            if (response?.order?._id) {
+                              const customerIdSafe = selectedCustomer?._id;
+                              if (response?.order?._id && customerIdSafe) {
+                                await addOrderToCustomer(customerIdSafe as string, {
+                                  orderId: response.order._id,
+                                  orderNumber: response.order.orderNumber,
+                                  barcode: response.order.barcode,
+                                  orderDetails: orderData
+                                });
+                              }
                             }
                           }
 
@@ -2544,9 +2814,9 @@ export function CreateOrder() {
                             } as any;
                             setSavedOrder(fullOrder);
                             setOrderSaved(true);
-                            enqueueSnackbar('Sipariş başarıyla oluşturuldu', { variant: 'success' });
+                            enqueueSnackbar(mode === 'edit' ? 'Sipariş başarıyla güncellendi' : 'Sipariş başarıyla oluşturuldu', { variant: 'success' });
                           } else {
-                            throw new Error(response.error || 'Sipariş oluşturulurken bir hata oluştu');
+                            throw new Error(response.error || (mode === 'edit' ? 'Sipariş güncellenirken bir hata oluştu' : 'Sipariş oluşturulurken bir hata oluştu'));
                           }
                         } catch (error) {
                           console.error('Sipariş oluşturma hatası:', error);
@@ -2561,12 +2831,12 @@ export function CreateOrder() {
                       {isSubmitting ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Sipariş Oluşturuluyor...
+                          {mode === 'edit' ? 'Sipariş Güncelleniyor...' : 'Sipariş Oluşturuluyor...'}
                         </>
                       ) : (
                         <>
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          Siparişi Tamamla
+                          {mode === 'edit' ? 'Siparişi Güncelle' : 'Siparişi Tamamla'}
                         </>
                       )}
                     </Button>

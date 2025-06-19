@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { getDeviceTypes, DeviceType } from '@/api/deviceTypes';
 import { getParts, Part as ApiPart } from '@/api/parts';
 import { useTranslation } from 'react-i18next';
+import React from 'react';
 
 interface Order {
   _id: string;
@@ -89,6 +90,15 @@ function getTotalServiceFee(orders: any[]) {
   return orders.reduce((sum, order) => sum + (order.serviceFee || 0), 0);
 }
 
+// Status seçenekleri enum'dan alınanlar ve i18n anahtarları
+const ORDER_STATUSES = [
+  'pending',
+  'shipped',
+  'delivered',
+  'completed',
+  'cancelled',
+];
+
 export function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +136,8 @@ export function Orders() {
   });
   const [readyToPrint, setReadyToPrint] = useState(false);
   const [parts, setParts] = useState<ApiPart[]>([]);
+  const [pendingStatus, setPendingStatus] = useState<{orderId: string, status: string} | null>(null);
+  const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
 
   // 1. Tüm veriler: orders
   // 2. Arama ve filtreleme
@@ -303,6 +315,29 @@ export function Orders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToPrint]);
 
+  // Select değişim handler'ı
+  const handleStatusChange = (order: Order, newStatus: string) => {
+    if (newStatus === 'cancelled') {
+      setPendingStatus({ orderId: order._id, status: order.status });
+      setConfirmCancelOrderId(order._id);
+    } else {
+      updateStatus(order, newStatus);
+    }
+  };
+
+  const updateStatus = async (order: Order, newStatus: string) => {
+    setStatusUpdating((prev) => ({ ...prev, [order._id]: true }));
+    try {
+      await updateOrderStatus(order._id, { status: newStatus });
+      enqueueSnackbar(t('orders.updateStatus') + ' ✓', { variant: 'success' });
+      await loadOrders();
+    } catch (err) {
+      enqueueSnackbar(t('orders.updateStatus') + ' ✗', { variant: 'error' });
+    } finally {
+      setStatusUpdating((prev) => ({ ...prev, [order._id]: false }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -470,7 +505,23 @@ export function Orders() {
                             : '-'}
                         </td>
                         <td className="px-3 py-2">
-                          <span>{t(`orders.status.${order.status}`)}</span>
+                          <Select
+                            value={order.status}
+                            onValueChange={(newStatus) => handleStatusChange(order, newStatus)}
+                            disabled={statusUpdating[order._id]}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder={t('orders.selectStatus')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ORDER_STATUSES.map((status) => (
+                                <SelectItem key={status} value={status} disabled={order.status === 'cancelled' && status !== 'cancelled'}>
+                                  {t(`orders.status.${status}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {statusUpdating[order._id] && <span className="ml-2 animate-spin">⏳</span>}
                         </td>
                         <td className="px-3 py-2">
                           {order.totalCentralPayment ? `${formatCurrency(order.totalCentralPayment)}` : '-'}
@@ -478,6 +529,9 @@ export function Orders() {
                         <td className="px-3 py-2 flex gap-2 items-center">
                           <Button size="icon" variant="outline" title={t('orders.view')} onClick={() => navigate(`/orders/${order._id}`)}>
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="outline" title={t('orders.edit')} onClick={() => navigate(`/orders/edit/${order._id}`)}>
+                            <Pencil className="w-4 h-4" />
                           </Button>
                           <Button size="icon" variant="destructive" title={t('orders.delete')} onClick={() => setOrderToDelete(order)} disabled={deleting}>
                             <Trash2 className="w-4 h-4" />
@@ -576,7 +630,23 @@ export function Orders() {
                             : '-'}
                         </td>
                         <td className="px-3 py-2">
-                          <span>{t(`orders.status.${order.status}`)}</span>
+                          <Select
+                            value={order.status}
+                            onValueChange={(newStatus) => handleStatusChange(order, newStatus)}
+                            disabled={statusUpdating[order._id]}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder={t('orders.selectStatus')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ORDER_STATUSES.map((status) => (
+                                <SelectItem key={status} value={status} disabled={order.status === 'cancelled' && status !== 'cancelled'}>
+                                  {t(`orders.status.${status}`)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {statusUpdating[order._id] && <span className="ml-2 animate-spin">⏳</span>}
                         </td>
                         <td className="px-3 py-2">
                           {order.totalCentralPayment ? `${formatCurrency(order.totalCentralPayment)}` : '-'}
@@ -584,6 +654,9 @@ export function Orders() {
                         <td className="px-3 py-2 flex gap-2 items-center">
                           <Button size="icon" variant="outline" title={t('orders.view')} onClick={() => navigate(`/orders/${order._id}`)}>
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="outline" title={t('orders.edit')} onClick={() => navigate(`/orders/edit/${order._id}`)}>
+                            <Pencil className="w-4 h-4" />
                           </Button>
                           <Button size="icon" variant="destructive" title={t('orders.delete')} onClick={() => setOrderToDelete(order)} disabled={deleting}>
                             <Trash2 className="w-4 h-4" />
@@ -614,7 +687,10 @@ export function Orders() {
         </button>
       </div>
 
-      <AlertDialog open={!!orderToCancel} onOpenChange={() => setOrderToCancel(null)}>
+      <AlertDialog open={!!confirmCancelOrderId} onOpenChange={() => {
+        setConfirmCancelOrderId(null);
+        setPendingStatus(null);
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('orders.cancelOrderTitle')}</AlertDialogTitle>
@@ -623,8 +699,17 @@ export function Orders() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('orders.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancelConfirm} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogCancel onClick={() => {
+              setConfirmCancelOrderId(null);
+              setPendingStatus(null);
+            }}>{t('orders.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              if (pendingStatus) {
+                await updateStatus({ _id: pendingStatus.orderId } as Order, 'cancelled');
+              }
+              setConfirmCancelOrderId(null);
+              setPendingStatus(null);
+            }} className="bg-red-600 hover:bg-red-700">
               {t('orders.confirmCancel')}
             </AlertDialogAction>
           </AlertDialogFooter>
