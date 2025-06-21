@@ -9,10 +9,10 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, loading, user } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  if (isLoading) {
     return <PageLoader text="Checking authentication..." />
   }
 

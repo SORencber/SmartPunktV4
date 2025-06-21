@@ -99,7 +99,14 @@ export default function CustomerDetails() {
   const onSubmit = async (formData: CustomerFormData) => {
     try {
       if (!id) return
-      const response = await updateCustomer(id, formData)
+      
+      // Convert address string to object format expected by API
+      const updateData = {
+        ...formData,
+        address: formData.address ? { street: formData.address } : undefined
+      };
+      
+      const response = await updateCustomer(id, updateData)
       if (response.success) {
         enqueueSnackbar("Müşteri bilgileri güncellendi", { variant: "success" })
         setCustomer(prev => prev ? { ...prev, ...formData } : null)
@@ -219,7 +226,18 @@ export default function CustomerDetails() {
             {customer.createdBy && (
               <div>
                 <Label htmlFor="createdBy">{t('customers.createdBy')}</Label>
-                <Input id="createdBy" value={typeof customer.createdBy === 'object' && customer.createdBy !== null && 'fullName' in customer.createdBy ? ((customer.createdBy as any).fullName || '') : typeof customer.createdBy === 'string' ? customer.createdBy : ''} readOnly />
+                <Input 
+                  id="createdBy" 
+                  value={(() => {
+                    if (!customer.createdBy) return '';
+                    if (typeof customer.createdBy === 'string') return customer.createdBy;
+                    if (typeof customer.createdBy === 'object' && customer.createdBy !== null && 'fullName' in customer.createdBy) {
+                      return (customer.createdBy as any).fullName || '';
+                    }
+                    return '';
+                  })()} 
+                  readOnly 
+                />
               </div>
             )}
             <div className="flex justify-end pt-2">

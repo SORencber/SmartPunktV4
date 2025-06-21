@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, Plus, Building } from 'lucide-react';
 import { getDeviceTypes } from '@/api/deviceTypes';
-import { getBrands } from '@/api/brands';
+import { getBrands, type Brand as ApiBrand } from '@/api/brands';
 import { getPartsByBrand } from '@/api/parts';
 
 // Types
@@ -21,13 +21,12 @@ interface DeviceType {
   isActive: boolean;
 }
 
-interface Brand {
-  _id: string;
-  name: string;
-  icon: string;
-  deviceType?: string;
-  deviceTypeId?: string;
-  isActive: boolean;
+interface Brand extends ApiBrand {
+  inventoryStatus?: {
+    needsUpdate: boolean;
+    lastPartUpdate: string | null;
+    lastInventoryUpdate: string | null;
+  };
 }
 
 const Products: React.FC = () => {

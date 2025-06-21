@@ -116,7 +116,7 @@ export default function Logs() {
     }
   };
 
-  if (!user?.isAdmin) {
+  if (!user || user.role !== 'admin') {
     return (
       <div className="container mx-auto p-6">
         <Card>

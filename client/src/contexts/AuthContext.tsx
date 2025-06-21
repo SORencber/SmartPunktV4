@@ -80,20 +80,18 @@ export interface AuthContextType {
   logout: () => void;
   refreshUserData: () => Promise<void>;
   isAuthenticated: boolean;
-  refreshToken: () => Promise<boolean>;
   permissions: Permission[];
   isAdmin: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  isLoading: false,
+  isLoading: true,
   error: null,
   login: async () => {},
   logout: () => {},
   refreshUserData: async () => {},
   isAuthenticated: false,
-  refreshToken: async () => false,
   permissions: [],
   isAdmin: false,
 });
@@ -116,16 +114,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // User değiştiğinde isAdmin ve isAuthenticated'ı güncelle
-  useEffect(() => {
-    setIsAuthenticated(!!user);
-    setIsAdmin(user?.role === 'admin');
-  }, [user]);
+  const isAuthenticated = !!user;
+  const isAdmin = user?.role === 'admin';
 
-  // Kullanıcıyı localStorage'dan veya API'dan yükle
+  const logout = useCallback(() => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    setUser(null);
+    setError(null);
+    setLoading(false);
+    navigate('/login');
+  }, [navigate]);
+
   const refreshUserData = useCallback(async () => {
     try {
       setError(null);
@@ -164,24 +165,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       setPermissions(userData.permissions || []);
     } catch (err: any) {
-      setError((err as Error).message || 'Kullanıcı bilgileri alınamadı');
-      logout();
-    } finally {
-      setLoading(false);
+      throw err;
     }
   }, []);
 
-  // Sayfa yüklendiğinde token'dan user'ı al
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    if (accessToken) {
-      const userFromToken = jwtDecode(accessToken);
-      setUser(userFromToken as any);
-      setPermissions((userFromToken as any).permissions || []);
-    }
-  }, []);
+    const initializeAuth = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      
+      if (!accessToken) {
+        setLoading(false);
+        return;
+      }
 
-  // Login fonksiyonunda, user'ı token'dan al
+      try {
+        await refreshUserData();
+      } catch (err) {
+        logger.error('Authentication failed during initialization:', err);
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    initializeAuth();
+  }, [logout, refreshUserData]);
+
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -194,7 +203,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const userFromToken = jwtDecode(accessToken);
         setUser(userFromToken as any);
         setPermissions((userFromToken as any).permissions || []);
-        // Sonra yönlendir
         navigate('/dashboard');
       } else {
         throw new Error(response.message || 'Giriş başarısız');
@@ -206,14 +214,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    setUser(null);
-    setError(null);
-    navigate('/login');
-  }, [navigate]);
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -223,7 +223,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       logout,
       refreshUserData,
       isAuthenticated,
-      refreshToken: async () => { const res = await refreshToken(); return res.success; },
       permissions,
       isAdmin,
     }}>

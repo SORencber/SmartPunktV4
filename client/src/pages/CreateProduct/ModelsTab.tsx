@@ -1,4 +1,4 @@
-import React, { useState, useMemo, ChangeEvent, FormEvent, SelectChangeEvent } from 'react';
+import React, { useState, useMemo, ChangeEvent, FormEvent } from 'react';
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  SelectChangeEvent,
   Table,
   TableBody,
   TableCell,
@@ -94,9 +95,9 @@ export function ModelsTab({
     setEditingModel(model);
     setEditFormData({
       name: model.name,
-      brand: brand.name,
+      brand: String(brand.name || ''),
       brandId: brand._id,
-      deviceType: deviceType.name,
+      deviceType: String(deviceType.name || ''),
       deviceTypeId: deviceType._id,
       description: model.description || '',
       icon: model.icon || 'phone'
@@ -116,7 +117,7 @@ export function ModelsTab({
     });
   };
 
-  const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>) => {
+  const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (!name) return;
 
@@ -130,13 +131,33 @@ export function ModelsTab({
       newFormData.brand = '';
     } else if (name === 'brandId') {
       const brand = brands.find(b => b._id === value);
-      newFormData.brand = brand?.name || '';
+      newFormData.brand = String(brand?.name || '');
     }
     
     setFormData(newFormData);
   };
 
-  const handleEditFormChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | SelectChangeEvent<string>) => {
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target;
+    if (!name) return;
+
+    const newFormData = { ...formData, [name]: value };
+
+    // If device type is changed, reset brand
+    if (name === 'deviceTypeId') {
+      const deviceType = deviceTypes.find(dt => dt._id === value);
+      newFormData.deviceType = deviceType?.name || '';
+      newFormData.brandId = '';
+      newFormData.brand = '';
+    } else if (name === 'brandId') {
+      const brand = brands.find(b => b._id === value);
+      newFormData.brand = String(brand?.name || '');
+    }
+    
+    setFormData(newFormData);
+  };
+
+  const handleEditFormChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (!name) return;
 
@@ -145,7 +166,33 @@ export function ModelsTab({
       setEditFormData(prev => ({
         ...prev,
         [name]: value,
-        brand: brand?.name || ''
+        brand: String(brand?.name || '')
+      }));
+    } else if (name === 'deviceTypeId') {
+      const deviceType = deviceTypes.find(dt => dt._id === value);
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: value,
+        deviceType: deviceType?.name || ''
+      }));
+    } else {
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleEditSelectChange = (e: SelectChangeEvent<string>) => {
+    const { name, value } = e.target;
+    if (!name) return;
+
+    if (name === 'brandId') {
+      const brand = brands.find(b => b._id === value);
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: value,
+        brand: String(brand?.name || '')
       }));
     } else if (name === 'deviceTypeId') {
       const deviceType = deviceTypes.find(dt => dt._id === value);
@@ -208,9 +255,9 @@ export function ModelsTab({
 
       const createData: CreateModelRequest = {
         name: formData.name.trim(),
-        brand: typeof brand.name === 'string' ? brand.name : (brand.name?.tr || brand.name?.en || brand.name?.de || ''),
+        brand: String(brand.name || ''),
         brandId: formData.brandId,
-        deviceType: typeof deviceType.name === 'string' ? deviceType.name : (deviceType.name?.tr || deviceType.name?.en || deviceType.name?.de || ''),
+        deviceType: String(deviceType.name || ''),
         deviceTypeId: formData.deviceTypeId,
         description: formData.description.trim() || undefined,
         icon: formData.icon || 'phone'
@@ -354,7 +401,7 @@ export function ModelsTab({
               <Select
                 name="deviceTypeId"
                 value={formData.deviceTypeId}
-                onChange={handleFormChange}
+                onChange={handleSelectChange}
                 label="Device Type"
               >
                 {deviceTypes.map((dt) => (
@@ -369,7 +416,7 @@ export function ModelsTab({
               <Select
                 name="brandId"
                 value={formData.brandId}
-                onChange={handleFormChange}
+                onChange={handleSelectChange}
                 label="Brand"
               >
                 {brands
@@ -398,7 +445,7 @@ export function ModelsTab({
               <Select
                 name="icon"
                 value={formData.icon}
-                onChange={handleFormChange}
+                onChange={handleSelectChange}
                 label="Icon"
               >
                 <MenuItem value="phone">Phone</MenuItem>
@@ -455,7 +502,7 @@ export function ModelsTab({
                 <Select
                   name="brandId"
                   value={editFormData.brandId}
-                  onChange={handleEditFormChange}
+                  onChange={handleEditSelectChange}
                   label="Brand"
                 >
                   {brands.map((brand) => (
@@ -473,7 +520,7 @@ export function ModelsTab({
                 <Select
                   name="deviceTypeId"
                   value={editFormData.deviceTypeId}
-                  onChange={handleEditFormChange}
+                  onChange={handleEditSelectChange}
                   label="Device Type"
                 >
                   {deviceTypes.map((type) => (
@@ -491,7 +538,7 @@ export function ModelsTab({
                 <Select
                   name="icon"
                   value={editFormData.icon}
-                  onChange={handleEditFormChange}
+                  onChange={handleEditSelectChange}
                   label="Icon"
                 >
                   <MenuItem value="phone">Phone</MenuItem>

@@ -1,5 +1,4 @@
 import { api } from './api';
-import { createApiWrapper } from '@/utils/apiErrorHandler';
 
 // Description: Get all orders with MongoDB-style data
 // Endpoint: GET /api/orders

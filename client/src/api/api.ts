@@ -1,7 +1,6 @@
 import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 // @ts-ignore
 import JSONbig from 'json-bigint';
-import { ApiResponse } from './types';
 
 // Development ortamında proxy kullan, production'da tam URL kullan
 const baseURL = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:5000');

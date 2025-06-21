@@ -45,6 +45,7 @@ interface BrandsTabProps {
 export interface BrandFormData {
   name: string;
   deviceTypeId: string;
+  deviceType?: string;
   icon: string;
   description: string;
 }
@@ -52,6 +53,7 @@ export interface BrandFormData {
 export interface UpdateBrandFormData {
   name: string;
   deviceTypeId: string;
+  deviceType?: string;
   icon: string;
   description: string;
 }

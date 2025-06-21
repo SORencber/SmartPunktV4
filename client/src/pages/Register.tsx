@@ -7,11 +7,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { useAuth } from '@/contexts/AuthContext'
 import { useSnackbar } from 'notistack'
 import { useErrorHandler } from '@/hooks/useErrorHandler'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Eye, EyeOff, Wrench, Globe, UserPlus } from 'lucide-react'
+import { api } from '@/api/api'
 
 interface RegisterForm {
   email: string
@@ -27,7 +27,6 @@ export function Register() {
   const [loading, setLoading] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
   const navigate = useNavigate()
-  const { register: registerUser } = useAuth()
   const { enqueueSnackbar } = useSnackbar()
   const { handleError } = useErrorHandler()
 
@@ -53,11 +52,21 @@ export function Register() {
 
     setLoading(true)
     try {
-      await registerUser(data.email, data.password, data.name, data.role)
-      enqueueSnackbar("Registration Successful!", {
-        variant: "success",
+      const response = await api.post('/api/auth/register', {
+        email: data.email,
+        password: data.password,
+        fullName: data.name,
+        role: data.role
       })
-      navigate('/')
+      
+      if (response.data.success) {
+        enqueueSnackbar("Registration Successful!", {
+          variant: "success",
+        })
+        navigate('/login')
+      } else {
+        throw new Error(response.data.message || 'Registration failed')
+      }
     } catch (error) {
       handleError(error, 'Failed to create account. Please try again.')
     } finally {
