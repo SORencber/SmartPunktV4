@@ -277,9 +277,17 @@ export default function Users() {
     }
   }
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, setValue: (name: string, value: string) => void, name: string) => {
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (event: React.ChangeEvent<HTMLInputElement>) => void, name: string) => {
     const formattedNumber = formatPhoneNumber(e.target.value)
-    setValue(name, formattedNumber)
+    // Create a new event with the formatted value
+    const newEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        value: formattedNumber
+      }
+    } as React.ChangeEvent<HTMLInputElement>
+    onChange(newEvent)
   }
 
   const filteredUsers = users.filter(user => 

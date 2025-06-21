@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './components/ui/theme-provider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -21,7 +21,6 @@ import { CreateOrder } from './pages/CreateOrder';
 import EditOrder from './pages/EditOrder';
 import { OrderDetails } from './pages/OrderDetails';
 import CustomerDetails from './pages/CustomerDetails';
-import { Catalog } from './pages/Catalog';
 import Tracking from './pages/Tracking';
 import Logs from '@/pages/Logs';
 import Users from '@/pages/Users';
@@ -33,7 +32,6 @@ import { useAuth } from './contexts/AuthContext';
 import { BranchProvider } from '@/contexts/BranchContext';
 import RepairsPage from './pages/RepairsPage';
 import RepairDetailsPage from './pages/RepairDetailsPage';
-import CreateOrderWizard from '@/pages/CreateOrderWizard';
 import { Invoices } from '@/pages/Invoices';
 
 const AppRoutes = () => {
@@ -64,11 +62,9 @@ const AppRoutes = () => {
         <Route path="/customers" element={<Customers />} />
         <Route path="/customers/:id" element={<CustomerDetails />} />
         <Route path="/orders/create" element={<CreateOrder />} />
-        <Route path="/orders/create-wizard" element={<CreateOrderWizard />} />
         <Route path="/orders/edit/:id" element={<EditOrder />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:id" element={<OrderDetails />} />
-        <Route path="/catalog" element={<Catalog />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/finances" element={<Finances />} />
         <Route path="/warranties" element={<Warranties />} />

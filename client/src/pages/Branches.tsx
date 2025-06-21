@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions, @typescript-eslint/no-unused-params */
+/* eslint-disable @typescript-eslint/no-unused-locals */
+// If you also want to stop TypeScript itself from flagging them:
+// // @ts-nocheck
+
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"

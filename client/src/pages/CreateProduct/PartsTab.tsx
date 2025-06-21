@@ -53,6 +53,7 @@ import {
 } from '../../components/ui/select';
 import { Label } from '../../components/ui/label';
 import { useSnackbar, VariantType } from 'notistack';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Branch {
   _id: string;
@@ -76,8 +77,13 @@ interface Branch {
 }
 
 interface PartsTabProps {
-  branchId: string;
-  userId: string;
+  brands: any[];
+  deviceTypes: any[];
+  models: any[];
+  loading: boolean;
+  onCreate: (data: any) => Promise<boolean>;
+  onEdit: (id: string, data: any) => Promise<boolean>;
+  onDelete: (id: string) => Promise<boolean>;
 }
 
 interface FormData {
@@ -128,14 +134,11 @@ interface FormErrors {
   qrCode?: string;
 }
 
-export function PartsTab({ branchId, userId }: PartsTabProps) {
+export function PartsTab({ brands, deviceTypes, models, loading, onCreate, onEdit, onDelete }: PartsTabProps) {
   const navigate = useNavigate();
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const { user } = useAuth();
   const [parts, setParts] = useState<any[]>([]);
-  const [deviceTypes, setDeviceTypes] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
-  const [models, setModels] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingPart, setEditingPart] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -155,7 +158,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
     minStockLevel: 0,
     shelfNumber: '',
     isActive: true,
-    branchId: branchId,
+    branchId: user?.branchId || '',
     serviceFee: { amount: 0, currency: 'EUR' as const },
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -201,33 +204,12 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
   useEffect(() => {
     console.log('PartsTab mounted, showing test notification');
     showNotification('Test bildirimi - PartsTab yüklendi', 'info');
+    // Load parts only
+    loadParts();
   }, [showNotification]);
-
-  // Load all necessary data on component mount
-  useEffect(() => {
-    const loadAllData = async () => {
-      try {
-        setLoading(true);
-        await Promise.all([
-          loadParts(),
-          loadDeviceTypes(),
-          loadBrands(),
-          loadModels()
-        ]);
-      } catch (err: any) {
-        console.error('Error loading data:', err);
-        showNotification("Veriler yüklenirken bir hata oluştu", 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAllData();
-  }, []);
 
   const loadParts = async () => {
     try {
-      setLoading(true);
       console.log('Loading parts...');
       
       const response = await getParts();
@@ -245,47 +227,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         console.log('Received 401 while loading parts, redirecting to login');
         navigate('/login');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadDeviceTypes = async () => {
-    try {
-      const response = await getDeviceTypes();
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch device types');
-      }
-      setDeviceTypes(response.data);
-    } catch (err: any) {
-      console.error('Error loading device types:', err);
-      throw err;
-    }
-  };
-
-  const loadBrands = async () => {
-    try {
-      const response = await getBrands();
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch brands');
-      }
-      setBrands(response.data);
-    } catch (err: any) {
-      console.error('Error loading brands:', err);
-      throw err;
-    }
-  };
-
-  const loadModels = async () => {
-    try {
-      const response = await getModels();
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch models');
-      }
-      setModels(response.data);
-    } catch (err: any) {
-      console.error('Error loading models:', err);
-      throw err;
     }
   };
 
@@ -441,7 +382,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
 
   const handleCreatePart = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       const errors = validateForm(formData);
@@ -571,9 +511,9 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
     } catch (err: any) {
       console.error('Error creating part:', err);
       showNotification(err.response?.data?.message || 'Parça eklenirken bir hata oluştu', 'error');
-    } finally {
-      setLoading(false);
-    }
+          } finally {
+        // Loading handled by parent
+      }
   };
 
   const handleEditClick = (part: Part) => {
@@ -606,7 +546,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         minStockLevel: part.minStockLevel || 5,
         shelfNumber: part.shelfNumber || '',
         stock: part.stock || 0,
-        branchId: part.branchId || '',
+        branchId: part.branchId || user?.branchId || '',
         serviceFee: part.serviceFee || { amount: 0, currency: 'EUR' },
       });
 
@@ -621,7 +561,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
 
   const handleUpdatePart = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     let hasError = false;
     let updateErrors: string[] = [];
 
@@ -658,7 +597,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         stock: formData.stock,
         minStockLevel: formData.minStockLevel,
         shelfNumber: formData.shelfNumber,
-        branchId: branchId,
+        branchId: user?.branchId || '',
         serviceFee: formData.serviceFee,
         code: formData.code
       };
@@ -753,7 +692,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       );
       hasError = true;
     } finally {
-      setLoading(false);
+      // Loading handled by parent
       console.log(
         hasError 
           ? 'Parça güncelleme işlemi hatalarla tamamlandı'
@@ -767,7 +706,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       return;
     }
 
-    setLoading(true);
     try {
       const success = await deletePart(partId);
       if (success) {
@@ -777,8 +715,6 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
     } catch (err: any) {
       console.error('Parça silinirken hata:', err);
       showNotification('Parça silinirken bir hata oluştu', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -890,7 +826,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
           price: typeof part.price === 'number' ? { amount: part.price, currency: 'EUR' } : part.price,
           stock: part.stock || 0,
           serviceFee: part.serviceFee || { amount: 0, currency: 'EUR' },
-          branchId: part.branchId || branchId
+          branchId: part.branchId || user?.branchId || ''
         });
       } catch (err: any) {
         console.error('Error opening dialog:', err);
@@ -918,7 +854,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
         price: { amount: 0, currency: 'EUR' },
         stock: 0,
         serviceFee: { amount: 0, currency: 'EUR' },
-        branchId: branchId
+        branchId: user?.branchId || ''
       });
     }
     setOpenDialog(true);
@@ -945,7 +881,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       price: { amount: 0, currency: 'EUR' },
       stock: 0,
       serviceFee: { amount: 0, currency: 'EUR' },
-      branchId: branchId
+      branchId: user?.branchId || ''
     });
   };
 
@@ -968,7 +904,7 @@ export function PartsTab({ branchId, userId }: PartsTabProps) {
       shelfNumber: '',
       stock: 0,
       serviceFee: { amount: 0, currency: 'EUR' },
-      branchId: branchId
+      branchId: user?.branchId || ''
     });
   };
 

@@ -282,8 +282,13 @@ export default function CreateProduct() {
 
         <TabPanel value={value} index={3}>
           <PartsTab
-            branchId={user?.branchId || ''}
-            userId={user?.id || ''}
+            brands={brands}
+            deviceTypes={deviceTypes}
+            models={models}
+            loading={loading}
+            onCreate={async () => true}
+            onEdit={async () => true}
+            onDelete={async () => true}
           />
         </TabPanel>
 

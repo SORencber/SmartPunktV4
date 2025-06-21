@@ -24,8 +24,8 @@ import { PageContainer } from '@/components/PageContainer';
 // Types
 interface Brand {
   _id: string;
-  name: string;
-  icon: string;
+  name: any;
+  icon?: string;
   deviceType?: string;
   deviceTypeId?: string;
   isActive: boolean;
@@ -42,6 +42,31 @@ interface Part {
   brandId: string | { _id: string };
   deviceTypeId: string | { _id: string };
   category: string;
+  name: {
+    tr: string;
+    de: string;
+    en: string;
+  };
+  description?: {
+    tr?: string;
+    de?: string;
+    en?: string;
+  };
+  barcode?: string;
+  qrCode?: string;
+  isActive: boolean;
+  compatibleWith?: string[];
+  cost: number | { amount: number; currency: 'EUR' };
+  margin: number;
+  minStockLevel: number;
+  price: number | { amount: number; currency: 'EUR' };
+  shelfNumber: string;
+  stock: number;
+  serviceFee: {
+    amount: number;
+    currency: 'EUR';
+  };
+  branchId?: string;
 }
 
 const Products: React.FC = () => {
@@ -338,16 +363,16 @@ const Products: React.FC = () => {
           brandId,
           deviceTypeId,
           category: part.category,
-          name: part.name,
-          description: part.description,
-          barcode: part.barcode,
-          qrCode: part.qrCode,
+          name: typeof part.name === 'string' ? part.name : (part.name?.tr || part.name?.en || part.name?.de || ''),
+          description: typeof part.description === 'string' ? part.description : (part.description?.tr || part.description?.en || part.description?.de || ''),
+          barcode: part.barcode || '',
+          qrCode: part.qrCode || '',
           isActive: part.isActive,
-          compatibleWith: part.compatibleWith,
-          cost: part.cost,
+          compatibleWith: part.compatibleWith || [],
+          cost: typeof part.cost === 'number' ? part.cost : part.cost?.amount || 0,
           margin: part.margin,
           minStockLevel: part.minStockLevel,
-          price: part.price,
+          price: typeof part.price === 'number' ? part.price : part.price?.amount || 0,
           shelfNumber: part.shelfNumber,
           stock: part.stock,
           updatedBy: user._id
