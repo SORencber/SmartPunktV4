@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface DeviceTypeIconProps {
   icon: string;
@@ -148,29 +148,34 @@ const AVAILABLE_SVG_DEVICE_TYPES = new Set([
 ]);
 
 export const DeviceTypeIcon: React.FC<DeviceTypeIconProps> = ({ icon, className = '', size = 24 }) => {
+  const [imageError, setImageError] = useState(false);
+  
   const iconPath = DEVICE_TYPE_ICONS[icon];
   const emoji = DEVICE_TYPE_EMOJIS[icon];
   const hasSvg = iconPath && AVAILABLE_SVG_DEVICE_TYPES.has(icon);
 
-  if (!hasSvg) {
-    return (
-      <div 
-        className={`inline-flex items-center justify-center bg-gray-100 rounded-lg ${className}`}
-        style={{ 
-          width: size, 
-          height: size,
-          minWidth: size,
-          minHeight: size,
-          fontSize: `${size * 0.6}px`,
-          backgroundColor: '#f3f4f6',
-          borderRadius: '4px',
-          color: '#374151'
-        }}
-        title={icon}
-      >
-        {emoji || icon.charAt(0).toUpperCase()}
-      </div>
-    );
+  // Fallback component for when image fails or SVG not available
+  const FallbackIcon = () => (
+    <div 
+      className={`inline-flex items-center justify-center bg-gray-100 rounded-lg ${className}`}
+      style={{ 
+        width: size, 
+        height: size,
+        minWidth: size,
+        minHeight: size,
+        fontSize: `${size * 0.6}px`,
+        backgroundColor: '#f3f4f6',
+        borderRadius: '4px',
+        color: '#374151'
+      }}
+      title={icon}
+    >
+      {emoji || icon.charAt(0).toUpperCase()}
+    </div>
+  );
+
+  if (!hasSvg || imageError) {
+    return <FallbackIcon />;
   }
 
   return (
@@ -195,25 +200,9 @@ export const DeviceTypeIcon: React.FC<DeviceTypeIconProps> = ({ icon, className 
           height: '100%',
           objectFit: 'contain'
         }}
-        onError={(e) => {
-          // If image fails to load, replace with fallback
-          const target = e.target as HTMLImageElement;
-          target.style.display = 'none';
-          target.parentElement!.innerHTML = `
-            <div style="
-              width: 100%;
-              height: 100%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background-color: #f3f4f6;
-              border-radius: 4px;
-              color: #374151;
-              font-size: ${size * 0.6}px;
-            ">
-              ${emoji || icon.charAt(0).toUpperCase()}
-            </div>
-          `;
+        onError={() => {
+          // Use React state instead of direct DOM manipulation
+          setImageError(true);
         }}
       />
     </div>
